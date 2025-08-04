@@ -3,23 +3,21 @@ import React from 'react';
 import { BarChart3, Trophy, Calendar, Target, Award, Flame } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useUserStats } from '@/hooks/useUserStats';
 
 export const Dashboard = () => {
-  const stats = {
-    totalDays: 23,
-    currentStreak: 7,
-    longestStreak: 14,
-    thisMonth: 18,
-    weeklyGoal: 7,
-    completedThisWeek: 5
-  };
+  const { stats, loading } = useUserStats();
+
+  if (loading) {
+    return <div className="text-center p-8">Loading your stats...</div>;
+  }
 
   const badges = [
-    { name: 'First Steps', description: 'Complete your first worship', earned: true, icon: '🌟' },
-    { name: 'Consistency Champion', description: '7 day streak', earned: true, icon: '🔥' },
-    { name: 'Monthly Warrior', description: '20 days in a month', earned: false, icon: '🏆' },
+    { name: 'First Steps', description: 'Complete your first worship', earned: stats.totalDays > 0, icon: '🌟' },
+    { name: 'Consistency Champion', description: '7 day streak', earned: stats.longestStreak >= 7, icon: '🔥' },
+    { name: 'Monthly Warrior', description: '20 days in a month', earned: stats.thisMonth >= 20, icon: '🏆' },
     { name: 'Bible Scholar', description: 'Complete a book study', earned: false, icon: '📚' },
-    { name: 'Family Leader', description: '50 total worship sessions', earned: false, icon: '👨‍👩‍👧‍👦' },
+    { name: 'Family Leader', description: '50 total worship sessions', earned: stats.totalDays >= 50, icon: '👨‍👩‍👧‍👦' },
   ];
 
   return (
@@ -75,7 +73,10 @@ export const Dashboard = () => {
             <Progress value={(stats.completedThisWeek / stats.weeklyGoal) * 100} className="h-3" />
           </div>
           <p className="text-sm text-gray-600">
-            {stats.weeklyGoal - stats.completedThisWeek} more days to reach your weekly goal!
+            {stats.weeklyGoal - stats.completedThisWeek > 0 
+              ? `${stats.weeklyGoal - stats.completedThisWeek} more days to reach your weekly goal!`
+              : 'Congratulations! You\'ve reached your weekly goal!'
+            }
           </p>
         </div>
       </Card>
@@ -122,8 +123,13 @@ export const Dashboard = () => {
         <div className="p-4">
           <h3 className="font-semibold text-emerald-800 mb-2">🎯 Keep Going!</h3>
           <p className="text-emerald-700 text-sm">
-            You're doing great! Just 3 more days to reach your longest streak record. 
-            Your family worship consistency is building lasting spiritual habits.
+            {stats.currentStreak > 0 
+              ? `You're doing great! Keep up your ${stats.currentStreak} day streak.`
+              : 'Ready to start your worship journey? Complete today\'s worship to begin your streak!'
+            }
+            {stats.longestStreak > stats.currentStreak && stats.currentStreak > 0 &&
+              ` Just ${stats.longestStreak - stats.currentStreak + 1} more days to beat your record!`
+            }
           </p>
         </div>
       </Card>

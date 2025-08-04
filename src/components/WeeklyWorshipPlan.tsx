@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Calendar, ChevronRight, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { DailyPlanEditor } from './DailyPlanEditor';
 
 export const WeeklyWorshipPlan = () => {
   const [studyType, setStudyType] = useState<'book' | 'topic'>('book');
@@ -15,6 +15,7 @@ export const WeeklyWorshipPlan = () => {
   const [currentPlan, setCurrentPlan] = useState<any>(null);
   const [weeklyEntries, setWeeklyEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [editingDay, setEditingDay] = useState<{date: string, data?: any} | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -44,6 +45,57 @@ export const WeeklyWorshipPlan = () => {
     { value: 'stewardship', name: 'Stewardship', weeks: 2 },
   ];
 
+  // Enhanced topic passages with proper coverage
+  const getTopicPassages = (topic: string, weekInTopic: number, dayInWeek: number) => {
+    const topicPassages: { [key: string]: { [key: number]: string[] } } = {
+      'creation': {
+        1: [
+          'Genesis 1:1-5', 'Genesis 1:6-13', 'Genesis 1:14-19', 'Genesis 1:20-25',
+          'Genesis 1:26-31', 'Genesis 2:1-3', 'Psalm 104:1-9'
+        ],
+        2: [
+          'Psalm 104:10-18', 'Psalm 104:19-23', 'Psalm 104:24-30', 'Psalm 104:31-35',
+          'Romans 1:20', 'Colossians 1:16-17', 'Hebrews 11:3'
+        ]
+      },
+      'god-nature': {
+        1: [
+          'Exodus 3:14', 'Psalm 90:1-2', 'Isaiah 55:8-9', 'John 4:24',
+          '1 John 4:8', 'James 1:17', 'Malachi 3:6'
+        ],
+        2: [
+          'Psalm 139:1-6', 'Psalm 139:7-12', 'Psalm 139:13-18', 'Isaiah 46:9-10',
+          'Jeremiah 23:23-24', '1 Kings 8:27', 'Job 11:7-9'
+        ],
+        3: [
+          'Isaiah 6:1-3', 'Revelation 4:8', 'Exodus 15:11', 'Psalm 99:3',
+          'Isaiah 57:15', 'Habakkuk 1:13', 'Leviticus 19:2'
+        ],
+        4: [
+          'Psalm 103:8', 'Exodus 34:6-7', 'Lamentations 3:22-23', 'Romans 2:4',
+          'Ephesians 2:4-5', 'Titus 3:4-5', '1 John 3:1'
+        ]
+      },
+      'salvation': {
+        1: [
+          'Romans 3:23', 'Romans 6:23', 'Ephesians 2:8-9', 'John 3:16',
+          'Acts 4:12', '2 Corinthians 5:17', 'Galatians 2:20'
+        ],
+        2: [
+          'Romans 5:8', 'Titus 3:5', '1 John 1:9', 'Romans 8:1',
+          'Colossians 2:13-14', 'Hebrews 9:22', 'Romans 5:1'
+        ],
+        3: [
+          'John 14:6', 'Acts 16:30-31', 'Romans 10:9-10', '1 Peter 1:18-19',
+          'Revelation 3:20', 'John 1:12', 'Romans 8:16'
+        ]
+      }
+    };
+    
+    const weekPassages = topicPassages[topic]?.[weekInTopic] || topicPassages['god-nature'][1];
+    return weekPassages[dayInWeek - 1] || weekPassages[0];
+  };
+
   const generateCurrentWeekPlan = () => {
     const today = new Date();
     const currentDay = today.getDay(); // 0 = Sunday, 6 = Saturday
@@ -70,8 +122,8 @@ export const WeeklyWorshipPlan = () => {
         const topicData = spiritualTopics.find(t => t.value === selectedTopic);
         const weekInTopic = Math.floor(i / 7) + 1;
         const dayInWeek = (i % 7) + 1;
-        passage = getTopicPassage(selectedTopic, weekInTopic, dayInWeek);
-        focus = `${topicData?.name} - Week ${weekInTopic}`;
+        passage = getTopicPassages(selectedTopic, weekInTopic, dayInWeek);
+        focus = `${topicData?.name} - Week ${weekInTopic}, Day ${dayInWeek}`;
       }
 
       weekPlan.push({
@@ -81,31 +133,11 @@ export const WeeklyWorshipPlan = () => {
         focus,
         isToday,
         isPast,
-        isSabbath: currentDay === 6
+        isSabbath: date.getDay() === 6
       });
     }
     
     return weekPlan;
-  };
-
-  const getTopicPassage = (topic: string, week: number, day: number) => {
-    const topicPassages: { [key: string]: string[] } = {
-      'god-nature': [
-        'Exodus 3:14', 'Psalm 90:1-2', 'Isaiah 55:8-9', 'John 4:24', 
-        '1 John 4:8', 'James 1:17', 'Malachi 3:6'
-      ],
-      'salvation': [
-        'Romans 3:23', 'Ephesians 2:8-9', 'John 3:16', 'Romans 6:23',
-        'Acts 4:12', '2 Corinthians 5:17', 'Titus 3:5'
-      ],
-      'scripture': [
-        '2 Timothy 3:16-17', 'Psalm 119:105', 'Isaiah 55:11', 'Hebrews 4:12',
-        'Matthew 4:4', 'John 17:17', '2 Peter 1:21'
-      ]
-    };
-    
-    const passages = topicPassages[topic] || ['Genesis 1:1'];
-    return passages[(week - 1) * 7 + (day - 1)] || passages[0];
   };
 
   const createNewStudyPlan = async () => {
@@ -187,6 +219,28 @@ export const WeeklyWorshipPlan = () => {
     return `This week, look for ways to apply the lessons from ${theme.toLowerCase()}. Share your observations during your next family worship time.`;
   };
 
+  const handleDayClick = async (day: any) => {
+    if (!user) return;
+
+    // Fetch existing data for this day
+    const { data: existingData } = await supabase
+      .from('daily_worship_entries')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', day.date)
+      .maybeSingle();
+
+    setEditingDay({
+      date: day.date,
+      data: existingData || {
+        bible_reading: day.passage,
+        theme: day.focus,
+        opening_song: 'Be Thou My Vision (SDAH #547)',
+        closing_song: 'How Great Thou Art (SDAH #86)'
+      }
+    });
+  };
+
   useEffect(() => {
     if (user) {
       fetchCurrentPlan();
@@ -223,6 +277,16 @@ export const WeeklyWorshipPlan = () => {
     }
   };
 
+  if (editingDay) {
+    return (
+      <DailyPlanEditor
+        date={editingDay.date}
+        initialData={editingDay.data}
+        onBack={() => setEditingDay(null)}
+      />
+    );
+  }
+
   const weekPlan = generateCurrentWeekPlan();
 
   return (
@@ -233,7 +297,7 @@ export const WeeklyWorshipPlan = () => {
             <BookOpen className="w-6 h-6 mr-2" />
             Weekly Worship Plan
           </h2>
-          <p className="text-purple-100">Study God's word together as a family - Current & Next 2 Weeks</p>
+          <p className="text-purple-100">Study God's word together as a family - Click any day to customize</p>
         </div>
       </Card>
 
@@ -275,42 +339,15 @@ export const WeeklyWorshipPlan = () => {
         </div>
       </div>
 
-      <div className="flex justify-end">
-        <Button 
-          onClick={createNewStudyPlan} 
-          disabled={loading}
-          className="bg-purple-500 hover:bg-purple-600 text-white flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          {loading ? 'Creating...' : 'Start New Study'}
-        </Button>
-      </div>
-
-      {currentPlan && (
-        <Card className="border border-purple-200 bg-purple-50">
-          <div className="p-4">
-            <h3 className="font-semibold text-purple-800 mb-2">Current Study Plan</h3>
-            <p className="text-purple-700">
-              {studyType === 'book' 
-                ? `${bibleBooks.find(b => b.value === currentPlan.book_name)?.name} Study`
-                : `${spiritualTopics.find(t => t.value === currentPlan.topic_name)?.name}`
-              }
-            </p>
-            <div className="mt-3 text-sm text-purple-600">
-              Started: {new Date(currentPlan.start_date).toLocaleDateString()}
-            </div>
-          </div>
-        </Card>
-      )}
-
       <div className="space-y-3">
         {weekPlan.map((day, index) => (
           <Card 
             key={index} 
-            className={`hover:shadow-md transition-shadow cursor-pointer ${
+            className={`hover:shadow-md transition-all cursor-pointer ${
               day.isToday ? 'ring-2 ring-blue-500 bg-blue-50' : 
               day.isPast ? 'bg-gray-50 opacity-75' : ''
-            }`}
+            } hover:bg-purple-50`}
+            onClick={() => handleDayClick(day)}
           >
             <div className="p-4 flex items-center justify-between">
               <div className="flex-1">
@@ -347,11 +384,11 @@ export const WeeklyWorshipPlan = () => {
         <div className="p-4">
           <h3 className="font-semibold text-amber-800 mb-2 flex items-center">
             <Calendar className="w-5 h-5 mr-2" />
-            Sabbath Special Feature
+            How to Use
           </h3>
           <p className="text-amber-700 text-sm">
-            Each Sabbath includes extended study time with nature object lessons, 
-            missionary stories, and deeper discussion questions for the whole family.
+            Click on any day to customize the worship plan with specific songs, discussion questions, 
+            and applications. Each Sabbath includes extended study materials for deeper family worship.
           </p>
         </div>
       </Card>

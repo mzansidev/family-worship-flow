@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Music, Book, MessageCircle, Target, Users } from 'lucide-react';
+import { RefreshCw, Music, Book, MessageCircle, Target, Users, Check } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useUserStats } from '@/hooks/useUserStats';
 
 type PlanSource = 'random' | 'weekly';
 
@@ -14,8 +15,10 @@ export const DailyWorshipPlan = () => {
   const [planSource, setPlanSource] = useState<PlanSource>('random');
   const [currentPlan, setCurrentPlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { updateStats } = useUserStats();
 
   const generateRandomPlan = () => {
     const themes = [
@@ -102,29 +105,8 @@ export const DailyWorshipPlan = () => {
         closingSong: existingPlan.closing_song,
         theme: existingPlan.theme
       });
+      setIsCompleted(existingPlan.is_completed || false);
       return;
-    }
-
-    // If following weekly plan, get from weekly entries
-    if (planSource === 'weekly') {
-      const { data: weeklyEntry } = await supabase
-        .from('daily_worship_entries')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .maybeSingle();
-
-      if (weeklyEntry) {
-        setCurrentPlan({
-          openingSong: weeklyEntry.opening_song,
-          bibleReading: weeklyEntry.bible_reading,
-          discussion: weeklyEntry.discussion_questions,
-          application: weeklyEntry.application,
-          closingSong: weeklyEntry.closing_song,
-          theme: weeklyEntry.theme
-        });
-        return;
-      }
     }
 
     // Generate random plan
@@ -142,8 +124,38 @@ export const DailyWorshipPlan = () => {
         discussion_questions: randomPlan.discussion,
         application: randomPlan.application,
         closing_song: randomPlan.closingSong,
-        theme: randomPlan.theme
+        theme: randomPlan.theme,
+        is_completed: false
       }], { onConflict: 'user_id,date' });
+  };
+
+  const handleMarkCompleted = async () => {
+    if (!user || !currentPlan) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    try {
+      await supabase
+        .from('daily_worship_entries')
+        .update({ is_completed: true })
+        .eq('user_id', user.id)
+        .eq('date', today);
+
+      setIsCompleted(true);
+      await updateStats(true);
+      
+      toast({
+        title: "Great job!",
+        description: "Today's worship session marked as complete!"
+      });
+    } catch (error) {
+      console.error('Error marking complete:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark as complete",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleGenerateNew = async () => {
@@ -214,11 +226,20 @@ export const DailyWorshipPlan = () => {
     <div className="space-y-6">
       <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white border-0">
         <div className="p-6">
-          <h2 className="text-2xl font-bold mb-2 flex items-center">
-            <Music className="w-6 h-6 mr-2" />
-            Daily Worship Plan
-          </h2>
-          <p className="text-emerald-100">Today's Theme: {currentPlan.theme}</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold mb-2 flex items-center">
+                <Music className="w-6 h-6 mr-2" />
+                Daily Worship Plan
+              </h2>
+              <p className="text-emerald-100">Today's Theme: {currentPlan.theme}</p>
+            </div>
+            {isCompleted && (
+              <div className="bg-white/20 p-2 rounded-full">
+                <Check className="w-8 h-8 text-white" />
+              </div>
+            )}
+          </div>
         </div>
       </Card>
 
@@ -256,14 +277,37 @@ export const DailyWorshipPlan = () => {
         </div>
 
         <div className="flex items-end">
-          <Button 
-            onClick={handleGenerateNew}
-            disabled={loading}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center gap-2 w-full"
-          >
-            <RefreshCw className="w-4 h-4" />
-            {loading ? 'Generating...' : 'Generate New Plan'}
-          </Button>
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <Button 
+              onClick={handleGenerateNew}
+              disabled={loading}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              {loading ? 'Generating...' : 'New Plan'}
+            </Button>
+            
+            {!isCompleted && (
+              <Button
+                onClick={handleMarkCompleted}
+                variant="outline"
+                className="border-emerald-500 text-emerald-600 hover:bg-emerald-50 flex items-center gap-2"
+              >
+                <Check className="w-4 h-4" />
+                Complete
+              </Button>
+            )}
+            
+            {isCompleted && (
+              <Button
+                disabled
+                className="bg-green-100 text-green-800 flex items-center gap-2 cursor-not-allowed"
+              >
+                <Check className="w-4 h-4" />
+                Completed
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

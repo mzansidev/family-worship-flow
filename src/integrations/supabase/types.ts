@@ -22,9 +22,11 @@ export type Database = {
           created_at: string
           date: string
           discussion_questions: Json | null
+          family_members_present: string[] | null
           id: string
           is_completed: boolean | null
           opening_song: string | null
+          reflection_notes: string | null
           theme: string | null
           updated_at: string
           user_id: string
@@ -37,9 +39,11 @@ export type Database = {
           created_at?: string
           date?: string
           discussion_questions?: Json | null
+          family_members_present?: string[] | null
           id?: string
           is_completed?: boolean | null
           opening_song?: string | null
+          reflection_notes?: string | null
           theme?: string | null
           updated_at?: string
           user_id: string
@@ -52,9 +56,11 @@ export type Database = {
           created_at?: string
           date?: string
           discussion_questions?: Json | null
+          family_members_present?: string[] | null
           id?: string
           is_completed?: boolean | null
           opening_song?: string | null
+          reflection_notes?: string | null
           theme?: string | null
           updated_at?: string
           user_id?: string
@@ -69,6 +75,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      principles_content: {
+        Row: {
+          category_id: string
+          content: string
+          created_at: string
+          id: string
+          is_new: boolean | null
+          read_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category_id: string
+          content: string
+          created_at?: string
+          id?: string
+          is_new?: boolean | null
+          read_time: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_new?: boolean | null
+          read_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          title: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          title: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       user_preferences: {
         Row: {
@@ -92,6 +161,57 @@ export type Database = {
           daily_plan_source?: string
           default_age_range?: string | null
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"] | null
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          role?: Database["public"]["Enums"]["user_role"] | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"] | null
+        }
+        Relationships: []
+      }
+      user_stats: {
+        Row: {
+          created_at: string
+          current_streak: number | null
+          id: string
+          last_worship_date: string | null
+          longest_streak: number | null
+          total_worship_days: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_worship_date?: string | null
+          longest_streak?: number | null
+          total_worship_days?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_streak?: number | null
+          id?: string
+          last_worship_date?: string | null
+          longest_streak?: number | null
+          total_worship_days?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -153,7 +273,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -280,6 +400,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "user"],
+    },
   },
 } as const
