@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Music, Book, MessageCircle, Target, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -8,9 +7,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
+type PlanSource = 'random' | 'weekly';
+
 export const DailyWorshipPlan = () => {
   const [ageRange, setAgeRange] = useState('family');
-  const [planSource, setPlanSource] = useState<'random' | 'weekly'>('random');
+  const [planSource, setPlanSource] = useState<PlanSource>('random');
   const [currentPlan, setCurrentPlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
@@ -192,7 +193,7 @@ export const DailyWorshipPlan = () => {
         .maybeSingle()
         .then(({ data }) => {
           if (data) {
-            setPlanSource(data.daily_plan_source);
+            setPlanSource(data.daily_plan_source as PlanSource);
             setAgeRange(data.default_age_range || 'family');
           }
         });
@@ -226,7 +227,7 @@ export const DailyWorshipPlan = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Plan Source
           </label>
-          <Select value={planSource} onValueChange={(value: 'random' | 'weekly') => setPlanSource(value)}>
+          <Select value={planSource} onValueChange={(value: PlanSource) => setPlanSource(value)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>

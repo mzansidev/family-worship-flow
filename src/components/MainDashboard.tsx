@@ -42,7 +42,7 @@ export const MainDashboard = () => {
       case 'profile':
         return <Dashboard />;
       default:
-        return <FeatureTiles onTileClick={setActiveFeature} />;
+        return <FeatureTiles />;
     }
   };
 
