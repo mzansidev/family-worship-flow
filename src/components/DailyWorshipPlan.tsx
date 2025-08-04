@@ -1,35 +1,213 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw, Music, Book, MessageCircle, Target, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 export const DailyWorshipPlan = () => {
   const [ageRange, setAgeRange] = useState('family');
-  const [currentPlan, setCurrentPlan] = useState(generatePlan());
+  const [planSource, setPlanSource] = useState<'random' | 'weekly'>('random');
+  const [currentPlan, setCurrentPlan] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  function generatePlan() {
-    const plans = {
-      openingSong: 'Be Thou My Vision (SDAH #547)',
-      bibleReading: 'Psalm 23:1-6 - The Lord is My Shepherd',
-      discussion: [
-        'What does it mean that God is our shepherd?',
-        'How does God guide us in our daily lives?',
-        'What are some "green pastures" God has provided for our family?',
-        'How can we trust God when we face difficulties?',
-        'What does it mean to "fear no evil" when God is with us?'
-      ],
-      application: 'This week, look for one way God has been your shepherd. Share it with your family during your next worship time.',
-      closingSong: 'How Great Thou Art (SDAH #86)',
-      theme: 'God as Our Shepherd'
+  const generateRandomPlan = () => {
+    const themes = [
+      'God as Our Shepherd', 'Walking in Faith', 'God\'s Love for Us',
+      'Trusting in Prayer', 'Following Jesus', 'God\'s Creation',
+      'Serving Others', 'God\'s Forgiveness', 'Growing in Faith'
+    ];
+    
+    const songs = [
+      'Be Thou My Vision (SDAH #547)', 'How Great Thou Art (SDAH #86)',
+      'Amazing Grace (SDAH #108)', 'Jesus Loves Me (SDAH #648)',
+      'This Is My Father\'s World (SDAH #61)', 'What a Friend We Have in Jesus (SDAH #124)'
+    ];
+
+    const passages = [
+      'Psalm 23:1-6 - The Lord is My Shepherd',
+      'John 3:16 - God\'s Love for the World',
+      'Philippians 4:13 - I Can Do All Things',
+      'Matthew 28:20 - Jesus Is Always With Us',
+      'Psalm 139:14 - Wonderfully Made',
+      'Romans 8:28 - All Things Work Together'
+    ];
+
+    const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+    
+    return {
+      openingSong: songs[Math.floor(Math.random() * songs.length)],
+      bibleReading: passages[Math.floor(Math.random() * passages.length)],
+      discussion: generateDiscussionQuestions(randomTheme, ageRange),
+      application: `This week, look for one way God has shown you ${randomTheme.toLowerCase()}. Share it with your family during your next worship time.`,
+      closingSong: songs[Math.floor(Math.random() * songs.length)],
+      theme: randomTheme
     };
-    return plans;
-  }
-
-  const handleGenerateNew = () => {
-    setCurrentPlan(generatePlan());
   };
+
+  const generateDiscussionQuestions = (theme: string, age: string) => {
+    const baseQuestions = [
+      `What does today's passage teach us about ${theme.toLowerCase()}?`,
+      'How can we apply this lesson in our daily lives?',
+      'What are some ways we can remember this truth throughout the week?'
+    ];
+
+    const ageSpecific = {
+      child: [
+        'Can you draw a picture of what this story means?',
+        'What would you tell a friend about God from this story?'
+      ],
+      teen: [
+        'How does this apply to challenges you face at school?',
+        'What questions does this raise for you about faith?'
+      ],
+      adult: [
+        'How has God demonstrated this truth in your life experience?',
+        'What practical steps can we take to live this out?'
+      ],
+      family: [
+        'How can our family show others this truth about God?',
+        'What is one thing each of us can do this week to practice this?'
+      ]
+    };
+
+    return [...baseQuestions, ...ageSpecific[age as keyof typeof ageSpecific]];
+  };
+
+  const fetchTodaysPlan = async () => {
+    if (!user) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Check if there's already a plan for today
+    const { data: existingPlan } = await supabase
+      .from('daily_worship_entries')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('date', today)
+      .maybeSingle();
+
+    if (existingPlan) {
+      setCurrentPlan({
+        openingSong: existingPlan.opening_song,
+        bibleReading: existingPlan.bible_reading,
+        discussion: existingPlan.discussion_questions,
+        application: existingPlan.application,
+        closingSong: existingPlan.closing_song,
+        theme: existingPlan.theme
+      });
+      return;
+    }
+
+    // If following weekly plan, get from weekly entries
+    if (planSource === 'weekly') {
+      const { data: weeklyEntry } = await supabase
+        .from('daily_worship_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .maybeSingle();
+
+      if (weeklyEntry) {
+        setCurrentPlan({
+          openingSong: weeklyEntry.opening_song,
+          bibleReading: weeklyEntry.bible_reading,
+          discussion: weeklyEntry.discussion_questions,
+          application: weeklyEntry.application,
+          closingSong: weeklyEntry.closing_song,
+          theme: weeklyEntry.theme
+        });
+        return;
+      }
+    }
+
+    // Generate random plan
+    const randomPlan = generateRandomPlan();
+    setCurrentPlan(randomPlan);
+    
+    // Save to database
+    await supabase
+      .from('daily_worship_entries')
+      .upsert([{
+        user_id: user.id,
+        date: today,
+        opening_song: randomPlan.openingSong,
+        bible_reading: randomPlan.bibleReading,
+        discussion_questions: randomPlan.discussion,
+        application: randomPlan.application,
+        closing_song: randomPlan.closingSong,
+        theme: randomPlan.theme
+      }], { onConflict: 'user_id,date' });
+  };
+
+  const handleGenerateNew = async () => {
+    setLoading(true);
+    const newPlan = generateRandomPlan();
+    setCurrentPlan(newPlan);
+
+    if (user) {
+      const today = new Date().toISOString().split('T')[0];
+      await supabase
+        .from('daily_worship_entries')
+        .upsert([{
+          user_id: user.id,
+          date: today,
+          opening_song: newPlan.openingSong,
+          bible_reading: newPlan.bibleReading,
+          discussion_questions: newPlan.discussion,
+          application: newPlan.application,
+          closing_song: newPlan.closingSong,
+          theme: newPlan.theme
+        }], { onConflict: 'user_id,date' });
+    }
+    
+    setLoading(false);
+  };
+
+  const updateUserPreferences = async () => {
+    if (!user) return;
+
+    await supabase
+      .from('user_preferences')
+      .upsert([{
+        user_id: user.id,
+        daily_plan_source: planSource,
+        default_age_range: ageRange
+      }], { onConflict: 'user_id' });
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchTodaysPlan();
+      // Load user preferences
+      supabase
+        .from('user_preferences')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setPlanSource(data.daily_plan_source);
+            setAgeRange(data.default_age_range || 'family');
+          }
+        });
+    }
+  }, [user, planSource]);
+
+  useEffect(() => {
+    if (user) {
+      updateUserPreferences();
+    }
+  }, [planSource, ageRange]);
+
+  if (!currentPlan) {
+    return <div className="text-center p-8">Loading today's worship plan...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -43,13 +221,28 @@ export const DailyWorshipPlan = () => {
         </div>
       </Card>
 
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <div className="flex-1">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Plan Source
+          </label>
+          <Select value={planSource} onValueChange={(value: 'random' | 'weekly') => setPlanSource(value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="random">Random Plans</SelectItem>
+              <SelectItem value="weekly">Follow Weekly Plan</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Age Range
           </label>
           <Select value={ageRange} onValueChange={setAgeRange}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -60,13 +253,17 @@ export const DailyWorshipPlan = () => {
             </SelectContent>
           </Select>
         </div>
-        <Button 
-          onClick={handleGenerateNew}
-          className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center gap-2"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Generate New Plan
-        </Button>
+
+        <div className="flex items-end">
+          <Button 
+            onClick={handleGenerateNew}
+            disabled={loading}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white flex items-center gap-2 w-full"
+          >
+            <RefreshCw className="w-4 h-4" />
+            {loading ? 'Generating...' : 'Generate New Plan'}
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -90,7 +287,7 @@ export const DailyWorshipPlan = () => {
           color="bg-orange-50 border-orange-200"
         >
           <ol className="space-y-2">
-            {currentPlan.discussion.map((question, index) => (
+            {currentPlan.discussion.map((question: string, index: number) => (
               <li key={index} className="flex">
                 <span className="bg-orange-200 text-orange-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-3 mt-0.5 flex-shrink-0">
                   {index + 1}

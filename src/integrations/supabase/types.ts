@@ -14,7 +14,137 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      daily_worship_entries: {
+        Row: {
+          application: string | null
+          bible_reading: string | null
+          closing_song: string | null
+          created_at: string
+          date: string
+          discussion_questions: Json | null
+          id: string
+          is_completed: boolean | null
+          opening_song: string | null
+          theme: string | null
+          updated_at: string
+          user_id: string
+          worship_plan_id: string | null
+        }
+        Insert: {
+          application?: string | null
+          bible_reading?: string | null
+          closing_song?: string | null
+          created_at?: string
+          date?: string
+          discussion_questions?: Json | null
+          id?: string
+          is_completed?: boolean | null
+          opening_song?: string | null
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+          worship_plan_id?: string | null
+        }
+        Update: {
+          application?: string | null
+          bible_reading?: string | null
+          closing_song?: string | null
+          created_at?: string
+          date?: string
+          discussion_questions?: Json | null
+          id?: string
+          is_completed?: boolean | null
+          opening_song?: string | null
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+          worship_plan_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_worship_entries_worship_plan_id_fkey"
+            columns: ["worship_plan_id"]
+            isOneToOne: false
+            referencedRelation: "worship_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          daily_plan_source: string
+          default_age_range: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_plan_source?: string
+          default_age_range?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_plan_source?: string
+          default_age_range?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      worship_plans: {
+        Row: {
+          book_name: string | null
+          created_at: string
+          current_chapter: number | null
+          current_week: number | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          plan_type: string
+          start_date: string
+          study_type: string
+          topic_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_name?: string | null
+          created_at?: string
+          current_chapter?: number | null
+          current_week?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          plan_type: string
+          start_date?: string
+          study_type: string
+          topic_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_name?: string | null
+          created_at?: string
+          current_chapter?: number | null
+          current_week?: number | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          plan_type?: string
+          start_date?: string
+          study_type?: string
+          topic_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

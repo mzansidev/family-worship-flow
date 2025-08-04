@@ -1,23 +1,79 @@
 
 import React from 'react';
-import { Heart, Sun } from 'lucide-react';
+import { BookOpen, Home, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
-export const Header = () => {
+type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile';
+
+interface HeaderProps {
+  activeFeature: ActiveFeature;
+  onNavigate: (feature: ActiveFeature) => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ activeFeature, onNavigate }) => {
+  const { user, signOut } = useAuth();
+
+  const getTitle = () => {
+    switch (activeFeature) {
+      case 'daily': return 'Daily Worship';
+      case 'weekly': return 'Weekly Plans';
+      case 'principles': return 'Principles Library';
+      case 'profile': return 'Dashboard';
+      default: return 'Family Pulse';
+    }
+  };
+
   return (
-    <header className="bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-lg">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <header className="bg-white shadow-sm border-b border-gray-200">
+      <div className="container mx-auto px-4 py-4 max-w-4xl">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="bg-white/20 p-2 rounded-full">
-              <Heart className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Family Pulse</h1>
-              <p className="text-amber-100 text-sm">Growing together in faith</p>
+          <div className="flex items-center space-x-4">
+            {activeFeature !== 'dashboard' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onNavigate('dashboard')}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            )}
+            <div className="flex items-center space-x-2">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-full">
+                <BookOpen className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-800">{getTitle()}</h1>
             </div>
           </div>
-          <div className="bg-white/20 p-2 rounded-full">
-            <Sun className="w-6 h-6 text-white" />
+          
+          <div className="flex items-center space-x-4">
+            {activeFeature !== 'dashboard' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onNavigate('dashboard')}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Home
+              </Button>
+            )}
+            {user && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">
+                  {user.email}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={signOut}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Sign Out
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
