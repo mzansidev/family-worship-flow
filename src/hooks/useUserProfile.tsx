@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 interface UserProfile {
   id: string;
   family_name?: string;
-  role: string;
+  role: "admin" | "user";
   created_at: string;
 }
 
