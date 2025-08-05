@@ -1,10 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
-import { Lightbulb, Users, Heart, Clock, ChevronRight, BookOpen, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Lightbulb, Users, Heart, Clock, ChevronRight, BookOpen, Edit2, Trash2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { usePrincipleReads } from '@/hooks/usePrincipleReads';
+import { usePrinciplesContent } from '@/hooks/usePrinciplesContent';
+import { AdminPrincipleForm } from './AdminPrincipleForm';
+import { useToast } from '@/hooks/use-toast';
 
 interface PrincipleContent {
   id: string;
@@ -18,10 +21,10 @@ interface PrincipleContent {
 export const PrinciplesLibrary = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<PrincipleContent | null>(null);
-  const [principlesContent, setPrinciplesContent] = useState<PrincipleContent[]>([]);
-  const [userRole, setUserRole] = useState<string>('user');
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { profile } = useUserProfile();
+  const { readPrinciples, markAsRead, getUnreadCount } = usePrincipleReads();
+  const { principlesContent, loading, deletePrinciple, refetch } = usePrinciplesContent();
+  const { toast } = useToast();
 
   const categories = [
     {
@@ -50,61 +53,39 @@ export const PrinciplesLibrary = () => {
     }
   ];
 
-  useEffect(() => {
-    if (user) {
-      fetchPrinciplesContent();
-      checkUserRole();
-    }
-  }, [user]);
-
-  const fetchPrinciplesContent = async () => {
-    try {
-      const { data } = await supabase
-        .from('principles_content')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      setPrinciplesContent(data || []);
-    } catch (error) {
-      console.error('Error fetching principles:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkUserRole = async () => {
-    if (!user) return;
-    
-    const { data } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    
-    if (data) {
-      setUserRole(data.role);
-    }
-  };
-
-  const markAsRead = async (articleId: string) => {
-    if (userRole !== 'admin') return;
-    
-    await supabase
-      .from('principles_content')
-      .update({ is_new: false })
-      .eq('id', articleId);
-    
-    fetchPrinciplesContent();
-  };
-
   const getArticlesForCategory = (categoryId: string) => {
     return principlesContent.filter(article => article.category_id === categoryId);
   };
 
   const getCategoryStats = (categoryId: string) => {
     const articles = getArticlesForCategory(categoryId);
-    const newCount = articles.filter(a => a.is_new).length;
-    return { total: articles.length, newCount };
+    const unreadCount = getUnreadCount(articles.map(a => a.id));
+    return { total: articles.length, unreadCount };
+  };
+
+  const handleReadArticle = async (article: PrincipleContent) => {
+    setSelectedArticle(article);
+    if (!readPrinciples.has(article.id)) {
+      await markAsRead(article.id);
+    }
+  };
+
+  const handleDeletePrinciple = async (id: string, title: string) => {
+    if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
+      try {
+        await deletePrinciple(id);
+        toast({
+          title: "Success",
+          description: "Article deleted successfully!"
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to delete article",
+          variant: "destructive"
+        });
+      }
+    }
   };
 
   if (loading) {
@@ -116,10 +97,7 @@ export const PrinciplesLibrary = () => {
     return (
       <div className="space-y-6">
         <button
-          onClick={() => {
-            setSelectedArticle(null);
-            markAsRead(selectedArticle.id);
-          }}
+          onClick={() => setSelectedArticle(null)}
           className="text-orange-600 hover:text-orange-700 flex items-center text-sm font-medium transition-colors"
         >
           ← Back to articles
@@ -129,11 +107,23 @@ export const PrinciplesLibrary = () => {
           <div className="p-6">
             <div className="flex items-start justify-between mb-4">
               <h1 className="text-2xl font-bold text-gray-800">{selectedArticle.title}</h1>
-              {selectedArticle.is_new && (
-                <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">
-                  NEW
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {!readPrinciples.has(selectedArticle.id) && (
+                  <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">
+                    NEW
+                  </span>
+                )}
+                {profile?.role === 'admin' && (
+                  <Button
+                    onClick={() => handleDeletePrinciple(selectedArticle.id, selectedArticle.title)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="text-sm text-gray-500 mb-6">{selectedArticle.read_time} read</div>
             <div className="prose prose-gray max-w-none">
@@ -177,7 +167,7 @@ export const PrinciplesLibrary = () => {
               <Card 
                 key={article.id} 
                 className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => setSelectedArticle(article)}
+                onClick={() => handleReadArticle(article)}
               >
                 <div className="p-4 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -187,7 +177,7 @@ export const PrinciplesLibrary = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-medium text-gray-800">{article.title}</h3>
-                        {article.is_new && (
+                        {!readPrinciples.has(article.id) && (
                           <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">
                             NEW
                           </span>
@@ -196,7 +186,22 @@ export const PrinciplesLibrary = () => {
                       <p className="text-sm text-gray-500">{article.read_time} read</p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                  <div className="flex items-center gap-2">
+                    {profile?.role === 'admin' && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePrinciple(article.id, article.title);
+                        }}
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  </div>
                 </div>
               </Card>
             ))}
@@ -219,11 +224,8 @@ export const PrinciplesLibrary = () => {
               </h2>
               <p className="text-orange-100">Learn how to build meaningful family worship</p>
             </div>
-            {userRole === 'admin' && (
-              <Button variant="ghost" className="text-white hover:bg-white/20">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Article
-              </Button>
+            {profile?.role === 'admin' && (
+              <AdminPrincipleForm onSuccess={refetch} />
             )}
           </div>
         </div>
@@ -246,9 +248,9 @@ export const PrinciplesLibrary = () => {
                     <IconComponent className="w-6 h-6" />
                   </div>
                   <div className="flex items-center gap-2">
-                    {stats.newCount > 0 && (
+                    {stats.unreadCount > 0 && (
                       <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        {stats.newCount} NEW
+                        {stats.unreadCount} NEW
                       </span>
                     )}
                     <ChevronRight className="w-5 h-5 text-white/70" />

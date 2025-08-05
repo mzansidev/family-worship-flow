@@ -8,6 +8,7 @@ interface UserProfile {
   family_name?: string;
   role: "admin" | "user";
   created_at: string;
+  password_hash?: string;
 }
 
 export const useUserProfile = () => {
@@ -44,15 +45,35 @@ export const useUserProfile = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_profiles')
         .update(updates)
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select()
+        .single();
 
       if (error) throw error;
-      await fetchProfile();
+      
+      // Update local state immediately
+      setProfile(prevProfile => prevProfile ? { ...prevProfile, ...data } : data);
+      return data;
     } catch (error) {
       console.error('Error updating profile:', error);
+      throw error;
+    }
+  };
+
+  const changePassword = async (newPassword: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error changing password:', error);
       throw error;
     }
   };
@@ -61,6 +82,7 @@ export const useUserProfile = () => {
     profile,
     loading,
     updateProfile,
+    changePassword,
     refetch: fetchProfile
   };
 };

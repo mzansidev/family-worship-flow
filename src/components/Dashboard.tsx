@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { BarChart3, Trophy, Calendar, Target, Award, Flame, Users, Settings } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -11,6 +10,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useToast } from '@/hooks/use-toast';
 import { ReflectionsList } from './ReflectionsList';
 import { FamilyMembersSection } from './FamilyMembersSection';
+import { PasswordChangeForm } from './PasswordChangeForm';
 
 export const Dashboard = () => {
   const { stats, loading } = useUserStats();
@@ -108,6 +108,9 @@ export const Dashboard = () => {
         </div>
       </Card>
 
+      {/* Password Change Section */}
+      <PasswordChangeForm />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Days"
@@ -157,10 +160,8 @@ export const Dashboard = () => {
         </div>
       </Card>
 
-      {/* Family Members Section */}
       <FamilyMembersSection />
 
-      {/* Reflections Section */}
       <ReflectionsList />
 
       <Card>
