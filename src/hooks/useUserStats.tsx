@@ -104,7 +104,7 @@ export const useUserStats = () => {
           total_worship_days: newTotalDays,
           current_streak: newCurrentStreak,
           longest_streak: newLongestStreak,
-          last_worship_date: completedToday ? today : stats.lastWorshipDate
+          last_worship_date: completedToday ? today : (stats.lastWorshipDate ? stats.lastWorshipDate.toISOString().split('T')[0] : null)
         });
 
       await fetchUserStats(); // Refresh stats
