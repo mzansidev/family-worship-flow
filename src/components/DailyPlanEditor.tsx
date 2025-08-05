@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, Music, Book, MessageCircle, Target } from 'lucide-react';
+import { ArrowLeft, Save, Music, Book, MessageCircle, Target, Plus, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,13 +33,20 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
 
   useEffect(() => {
     if (initialData) {
+      const questions = Array.isArray(initialData.discussion_questions) 
+        ? initialData.discussion_questions
+        : ['', '', '', ''];
+      
+      // Ensure we have at least 4 slots, pad with empty strings if needed
+      while (questions.length < 4) {
+        questions.push('');
+      }
+
       setPlanData({
         openingSong: initialData.opening_song || '',
         bibleReading: initialData.bible_reading || '',
         theme: initialData.theme || '',
-        discussionQuestions: Array.isArray(initialData.discussion_questions) 
-          ? initialData.discussion_questions.slice(0, 4)
-          : ['', '', '', ''],
+        discussionQuestions: questions,
         application: initialData.application || '',
         closingSong: initialData.closing_song || '',
         reflectionNotes: initialData.reflection_notes || '',
@@ -93,6 +100,20 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
   const updateDiscussionQuestion = (index: number, value: string) => {
     const newQuestions = [...planData.discussionQuestions];
     newQuestions[index] = value;
+    setPlanData({ ...planData, discussionQuestions: newQuestions });
+  };
+
+  const addDiscussionQuestion = () => {
+    setPlanData({
+      ...planData,
+      discussionQuestions: [...planData.discussionQuestions, '']
+    });
+  };
+
+  const removeDiscussionQuestion = (index: number) => {
+    if (planData.discussionQuestions.length <= 3) return; // Keep at least 3 questions
+    
+    const newQuestions = planData.discussionQuestions.filter((_, i) => i !== index);
     setPlanData({ ...planData, discussionQuestions: newQuestions });
   };
 
@@ -183,25 +204,51 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
 
         <Card className="lg:col-span-2">
           <div className="p-4">
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
-              <MessageCircle className="w-5 h-5 mr-2 text-orange-600" />
-              Discussion Questions
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-800 flex items-center">
+                <MessageCircle className="w-5 h-5 mr-2 text-orange-600" />
+                Discussion Questions
+              </h3>
+              <Button
+                onClick={addDiscussionQuestion}
+                size="sm"
+                variant="outline"
+                className="text-orange-600 border-orange-600 hover:bg-orange-50"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Add Question
+              </Button>
+            </div>
             <div className="space-y-3">
               {planData.discussionQuestions.map((question, index) => (
-                <div key={index}>
-                  <Label htmlFor={`question-${index}`} className="text-sm text-gray-600">
-                    Question {index + 1}
-                  </Label>
-                  <Input
-                    id={`question-${index}`}
-                    value={question}
-                    onChange={(e) => updateDiscussionQuestion(index, e.target.value)}
-                    placeholder={`Enter discussion question ${index + 1}`}
-                  />
+                <div key={index} className="flex gap-2">
+                  <div className="flex-1">
+                    <Label htmlFor={`question-${index}`} className="text-sm text-gray-600">
+                      Question {index + 1}
+                    </Label>
+                    <Input
+                      id={`question-${index}`}
+                      value={question}
+                      onChange={(e) => updateDiscussionQuestion(index, e.target.value)}
+                      placeholder={`Enter discussion question ${index + 1}`}
+                    />
+                  </div>
+                  {planData.discussionQuestions.length > 3 && (
+                    <Button
+                      onClick={() => removeDiscussionQuestion(index)}
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 mt-6"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
+            <p className="text-xs text-gray-500 mt-2">
+              You can add as many discussion questions as needed. The first 3 are typically generated automatically for book studies.
+            </p>
           </div>
         </Card>
 
