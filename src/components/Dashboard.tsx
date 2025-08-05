@@ -1,12 +1,46 @@
 
-import React from 'react';
-import { BarChart3, Trophy, Calendar, Target, Award, Flame } from 'lucide-react';
+import React, { useState } from 'react';
+import { BarChart3, Trophy, Calendar, Target, Award, Flame, Users, Settings } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useUserStats } from '@/hooks/useUserStats';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { useToast } from '@/hooks/use-toast';
+import { ReflectionsList } from './ReflectionsList';
+import { FamilyMembersSection } from './FamilyMembersSection';
 
 export const Dashboard = () => {
   const { stats, loading } = useUserStats();
+  const { profile, updateProfile } = useUserProfile();
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [familyName, setFamilyName] = useState(profile?.family_name || '');
+  const { toast } = useToast();
+
+  const handleUpdateProfile = async () => {
+    try {
+      await updateProfile({ family_name: familyName });
+      setIsEditingProfile(false);
+      toast({
+        title: "Success",
+        description: "Family name updated successfully!"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update family name",
+        variant: "destructive"
+      });
+    }
+  };
+
+  React.useEffect(() => {
+    if (profile?.family_name) {
+      setFamilyName(profile.family_name);
+    }
+  }, [profile]);
 
   if (loading) {
     return <div className="text-center p-8">Loading your stats...</div>;
@@ -29,6 +63,48 @@ export const Dashboard = () => {
             Dashboard & Profile
           </h2>
           <p className="text-blue-100">Track your family's spiritual journey</p>
+        </div>
+      </Card>
+
+      {/* Profile Management Section */}
+      <Card>
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold flex items-center">
+              <Settings className="w-5 h-5 mr-2 text-gray-600" />
+              Family Profile
+            </h3>
+            <Button
+              onClick={() => setIsEditingProfile(!isEditingProfile)}
+              variant="outline"
+              size="sm"
+            >
+              {isEditingProfile ? 'Cancel' : 'Edit'}
+            </Button>
+          </div>
+          
+          {isEditingProfile ? (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="family-name">Family Name</Label>
+                <Input
+                  id="family-name"
+                  value={familyName}
+                  onChange={(e) => setFamilyName(e.target.value)}
+                  placeholder="e.g., The Johnson Family"
+                />
+              </div>
+              <Button onClick={handleUpdateProfile} className="bg-blue-500 hover:bg-blue-600 text-white">
+                Save Changes
+              </Button>
+            </div>
+          ) : (
+            <div>
+              <p className="text-gray-600">
+                <strong>Family Name:</strong> {profile?.family_name || 'Not set'}
+              </p>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -80,6 +156,12 @@ export const Dashboard = () => {
           </p>
         </div>
       </Card>
+
+      {/* Family Members Section */}
+      <FamilyMembersSection />
+
+      {/* Reflections Section */}
+      <ReflectionsList />
 
       <Card>
         <div className="p-6">

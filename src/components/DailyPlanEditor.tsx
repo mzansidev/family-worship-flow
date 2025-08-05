@@ -1,14 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Save, Music, Book, MessageCircle, Target, Plus, X } from 'lucide-react';
+import { ArrowLeft, Save, Music, Book, MessageCircle, Target, Plus, X, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useFamilyMembers } from '@/hooks/useFamilyMembers';
+import { ReflectionSection } from './ReflectionSection';
 
 interface DailyPlanEditorProps {
   date: string;
@@ -25,11 +28,14 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
     application: '',
     closingSong: '',
     reflectionNotes: '',
-    familyMembers: ''
+    familyMembers: '',
+    leaderId: '',
+    assistantId: ''
   });
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { familyMembers } = useFamilyMembers();
 
   useEffect(() => {
     if (initialData) {
@@ -50,7 +56,9 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
         application: initialData.application || '',
         closingSong: initialData.closing_song || '',
         reflectionNotes: initialData.reflection_notes || '',
-        familyMembers: initialData.family_members_present?.join(', ') || ''
+        familyMembers: initialData.family_members_present?.join(', ') || '',
+        leaderId: initialData.leader_id || '',
+        assistantId: initialData.assistant_id || ''
       });
     }
   }, [initialData]);
@@ -70,7 +78,9 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
         application: planData.application,
         closing_song: planData.closingSong,
         reflection_notes: planData.reflectionNotes,
-        family_members_present: planData.familyMembers.split(',').map(m => m.trim()).filter(m => m !== '')
+        family_members_present: planData.familyMembers.split(',').map(m => m.trim()).filter(m => m !== ''),
+        leader_id: planData.leaderId || null,
+        assistant_id: planData.assistantId || null
       };
 
       const { error } = await supabase
@@ -149,6 +159,52 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Family Responsibilities */}
+        {familyMembers.length > 0 && (
+          <Card className="lg:col-span-2">
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-green-600" />
+                Family Responsibilities
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="leader">Leader</Label>
+                  <Select value={planData.leaderId} onValueChange={(value) => setPlanData({ ...planData, leaderId: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select leader" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No leader assigned</SelectItem>
+                      {familyMembers.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="assistant">Assistant</Label>
+                  <Select value={planData.assistantId} onValueChange={(value) => setPlanData({ ...planData, assistantId: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select assistant" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">No assistant assigned</SelectItem>
+                      {familyMembers.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         <Card>
           <div className="p-4">
             <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
@@ -290,6 +346,13 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
           </div>
         </Card>
       </div>
+
+      {/* Reflection Section */}
+      <ReflectionSection 
+        date={date} 
+        dailyEntryId={initialData?.id}
+        bibleReading={planData.bibleReading}
+      />
 
       <div className="flex justify-end">
         <Button

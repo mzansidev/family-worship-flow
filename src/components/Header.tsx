@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { BookOpen, Home, ArrowLeft } from 'lucide-react';
+import { Heart, Home, Calendar, CalendarDays, BookOpen, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile';
 
@@ -13,69 +14,87 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ activeFeature, onNavigate }) => {
   const { user, signOut } = useAuth();
+  const { profile } = useUserProfile();
 
-  const getTitle = () => {
-    switch (activeFeature) {
-      case 'daily': return 'Daily Worship';
-      case 'weekly': return 'Weekly Plans';
-      case 'principles': return 'Principles Library';
-      case 'profile': return 'Dashboard';
-      default: return 'Family Pulse';
-    }
+  const handleSignOut = async () => {
+    await signOut();
   };
 
+  const getDisplayName = () => {
+    if (profile?.family_name) {
+      return `${profile.family_name} Family`;
+    }
+    return user?.email || 'User';
+  };
+
+  const navigationItems = [
+    { id: 'dashboard' as const, label: 'Home', icon: Home },
+    { id: 'daily' as const, label: 'Daily', icon: Calendar },
+    { id: 'weekly' as const, label: 'Weekly', icon: CalendarDays },
+    { id: 'principles' as const, label: 'Principles', icon: BookOpen },
+    { id: 'profile' as const, label: 'Profile', icon: User },
+  ];
+
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="container mx-auto px-4 py-4 max-w-4xl">
+    <header className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            {activeFeature !== 'dashboard' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onNavigate('dashboard')}
-                className="text-gray-600 hover:text-gray-800"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-            )}
-            <div className="flex items-center space-x-2">
-              <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-2 rounded-full">
-                <BookOpen className="w-6 h-6 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold text-gray-800">{getTitle()}</h1>
+          <div className="flex items-center space-x-3">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-2 rounded-lg">
+              <Heart className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-800">Family Pulse</h1>
+              <p className="text-sm text-gray-600">Welcome, {getDisplayName()}</p>
             </div>
           </div>
-          
-          <div className="flex items-center space-x-4">
-            {activeFeature !== 'dashboard' && (
+
+          <nav className="hidden md:flex items-center space-x-2">
+            {navigationItems.map(({ id, label, icon: Icon }) => (
               <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onNavigate('dashboard')}
-                className="text-gray-600 hover:text-gray-800"
+                key={id}
+                onClick={() => onNavigate(id)}
+                variant={activeFeature === id ? "default" : "ghost"}
+                className={`flex items-center space-x-2 ${
+                  activeFeature === id 
+                    ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                }`}
               >
-                <Home className="w-4 h-4 mr-2" />
-                Home
+                <Icon className="w-4 h-4" />
+                <span>{label}</span>
               </Button>
-            )}
-            {user && (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">
-                  {user.email}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={signOut}
-                  className="text-gray-600 hover:text-gray-800"
-                >
-                  Sign Out
-                </Button>
-              </div>
-            )}
-          </div>
+            ))}
+          </nav>
+
+          <Button
+            onClick={handleSignOut}
+            variant="ghost"
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-800"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Sign Out</span>
+          </Button>
         </div>
+
+        {/* Mobile Navigation */}
+        <nav className="md:hidden mt-3 flex overflow-x-auto space-x-2 pb-2">
+          {navigationItems.map(({ id, label, icon: Icon }) => (
+            <Button
+              key={id}
+              onClick={() => onNavigate(id)}
+              variant={activeFeature === id ? "default" : "ghost"}
+              className={`flex items-center space-x-1 whitespace-nowrap ${
+                activeFeature === id 
+                  ? 'bg-blue-100 text-blue-700' 
+                  : 'text-gray-600'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="text-sm">{label}</span>
+            </Button>
+          ))}
+        </nav>
       </div>
     </header>
   );

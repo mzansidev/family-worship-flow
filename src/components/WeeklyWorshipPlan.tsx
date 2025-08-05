@@ -415,7 +415,8 @@ export const WeeklyWorshipPlan = () => {
       opening_song: 'Be Thou My Vision (SDAH #547)',
       closing_song: 'How Great Thou Art (SDAH #86)',
       discussion_questions: day.discussionQuestions,
-      application: generateApplication(day.focus)
+      application: generateApplication(day.focus),
+      is_completed: false
     }));
 
     const { error } = await supabase
@@ -563,44 +564,54 @@ export const WeeklyWorshipPlan = () => {
       </div>
 
       <div className="space-y-3">
-        {weekPlan.map((day, index) => (
-          <Card 
-            key={index} 
-            className={`hover:shadow-md transition-all cursor-pointer ${
-              day.isToday ? 'ring-2 ring-blue-500 bg-blue-50' : 
-              day.isPast ? 'bg-gray-50 opacity-75' : ''
-            } hover:bg-purple-50`}
-            onClick={() => handleDayClick(day)}
-          >
-            <div className="p-4 flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium text-gray-800">{day.day}</h4>
-                      {day.isToday && (
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                          Today
+        {weekPlan.map((day, index) => {
+          const existingEntry = weeklyEntries.find(entry => entry.date === day.date);
+          const isCompleted = existingEntry?.is_completed;
+          
+          return (
+            <Card 
+              key={index} 
+              className={`hover:shadow-md transition-all cursor-pointer ${
+                day.isToday ? 'ring-2 ring-blue-500 bg-blue-50' : 
+                day.isPast ? 'bg-gray-50 opacity-75' : ''
+              } ${isCompleted ? 'bg-green-50 border-green-200' : ''} hover:bg-purple-50`}
+              onClick={() => handleDayClick(day)}
+            >
+              <div className="p-4 flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-gray-800">{day.day}</h4>
+                        {day.isToday && (
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                            Today
+                          </span>
+                        )}
+                        {isCompleted && (
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
+                            ✓ Completed
+                          </span>
+                        )}
+                        <span className="text-sm text-gray-500">
+                          {new Date(day.date).toLocaleDateString()}
                         </span>
-                      )}
-                      <span className="text-sm text-gray-500">
-                        {new Date(day.date).toLocaleDateString()}
-                      </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{day.passage}</p>
+                      <p className="text-xs text-purple-600 font-medium mt-1">{day.focus}</p>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">{day.passage}</p>
-                    <p className="text-xs text-purple-600 font-medium mt-1">{day.focus}</p>
+                    {day.isSabbath && (
+                      <div className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-medium">
+                        Sabbath
+                      </div>
+                    )}
                   </div>
-                  {day.isSabbath && (
-                    <div className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-medium">
-                      Sabbath
-                    </div>
-                  )}
                 </div>
+                <ChevronRight className="w-5 h-5 text-gray-400" />
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
       </div>
 
       <Card className="bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200">

@@ -17,6 +17,7 @@ export type Database = {
       daily_worship_entries: {
         Row: {
           application: string | null
+          assistant_id: string | null
           bible_reading: string | null
           closing_song: string | null
           created_at: string
@@ -25,6 +26,7 @@ export type Database = {
           family_members_present: string[] | null
           id: string
           is_completed: boolean | null
+          leader_id: string | null
           opening_song: string | null
           reflection_notes: string | null
           theme: string | null
@@ -34,6 +36,7 @@ export type Database = {
         }
         Insert: {
           application?: string | null
+          assistant_id?: string | null
           bible_reading?: string | null
           closing_song?: string | null
           created_at?: string
@@ -42,6 +45,7 @@ export type Database = {
           family_members_present?: string[] | null
           id?: string
           is_completed?: boolean | null
+          leader_id?: string | null
           opening_song?: string | null
           reflection_notes?: string | null
           theme?: string | null
@@ -51,6 +55,7 @@ export type Database = {
         }
         Update: {
           application?: string | null
+          assistant_id?: string | null
           bible_reading?: string | null
           closing_song?: string | null
           created_at?: string
@@ -59,6 +64,7 @@ export type Database = {
           family_members_present?: string[] | null
           id?: string
           is_completed?: boolean | null
+          leader_id?: string | null
           opening_song?: string | null
           reflection_notes?: string | null
           theme?: string | null
@@ -68,6 +74,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "daily_worship_entries_assistant_id_fkey"
+            columns: ["assistant_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_worship_entries_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "daily_worship_entries_worship_plan_id_fkey"
             columns: ["worship_plan_id"]
             isOneToOne: false
@@ -75,6 +95,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      family_members: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       principles_content: {
         Row: {
@@ -169,20 +213,64 @@ export type Database = {
       user_profiles: {
         Row: {
           created_at: string
+          family_name: string | null
           id: string
           role: Database["public"]["Enums"]["user_role"] | null
         }
         Insert: {
           created_at?: string
+          family_name?: string | null
           id: string
           role?: Database["public"]["Enums"]["user_role"] | null
         }
         Update: {
           created_at?: string
+          family_name?: string | null
           id?: string
           role?: Database["public"]["Enums"]["user_role"] | null
         }
         Relationships: []
+      }
+      user_reflections: {
+        Row: {
+          bible_verse: string | null
+          created_at: string
+          daily_entry_id: string | null
+          id: string
+          reflection_text: string
+          updated_at: string
+          user_id: string
+          worship_date: string
+        }
+        Insert: {
+          bible_verse?: string | null
+          created_at?: string
+          daily_entry_id?: string | null
+          id?: string
+          reflection_text: string
+          updated_at?: string
+          user_id: string
+          worship_date: string
+        }
+        Update: {
+          bible_verse?: string | null
+          created_at?: string
+          daily_entry_id?: string | null
+          id?: string
+          reflection_text?: string
+          updated_at?: string
+          user_id?: string
+          worship_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_reflections_daily_entry_id_fkey"
+            columns: ["daily_entry_id"]
+            isOneToOne: false
+            referencedRelation: "daily_worship_entries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_stats: {
         Row: {
