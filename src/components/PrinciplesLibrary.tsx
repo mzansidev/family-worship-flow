@@ -22,7 +22,7 @@ export const PrinciplesLibrary = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<PrincipleContent | null>(null);
   const { profile } = useUserProfile();
-  const { readPrinciples, markAsRead, getUnreadCount } = usePrincipleReads();
+  const { readPrinciples, markAsRead } = usePrincipleReads();
   const { principlesContent, loading, deletePrinciple, refetch } = usePrinciplesContent();
   const { toast } = useToast();
 
@@ -59,8 +59,7 @@ export const PrinciplesLibrary = () => {
 
   const getCategoryStats = (categoryId: string) => {
     const articles = getArticlesForCategory(categoryId);
-    const unreadCount = getUnreadCount(articles.map(a => a.id));
-    return { total: articles.length, unreadCount };
+    return { total: articles.length };
   };
 
   const handleReadArticle = async (article: PrincipleContent) => {
@@ -92,10 +91,6 @@ export const PrinciplesLibrary = () => {
     }
   };
 
-  const isArticleNew = (article: PrincipleContent) => {
-    return !readPrinciples.has(article.id);
-  };
-
   if (loading) {
     return (
       <div className="text-center p-8">
@@ -120,11 +115,6 @@ export const PrinciplesLibrary = () => {
             <div className="flex items-start justify-between mb-4">
               <h1 className="text-2xl font-bold text-foreground">{selectedArticle.title}</h1>
               <div className="flex items-center gap-2">
-                {isArticleNew(selectedArticle) && (
-                  <span className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-1 rounded text-xs font-medium">
-                    NEW
-                  </span>
-                )}
                 {profile?.role === 'admin' && (
                   <Button
                     onClick={() => handleDeletePrinciple(selectedArticle.id, selectedArticle.title)}
@@ -187,14 +177,7 @@ export const PrinciplesLibrary = () => {
                       <BookOpen className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium text-foreground">{article.title}</h3>
-                        {isArticleNew(article) && (
-                          <span className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-1 rounded text-xs font-medium">
-                            NEW
-                          </span>
-                        )}
-                      </div>
+                      <h3 className="font-medium text-foreground">{article.title}</h3>
                       <p className="text-sm text-muted-foreground">{article.read_time} read</p>
                     </div>
                   </div>
@@ -259,14 +242,7 @@ export const PrinciplesLibrary = () => {
                   <div className="bg-white/20 p-2 rounded-full">
                     <IconComponent className="w-6 h-6" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    {stats.unreadCount > 0 && (
-                      <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        {stats.unreadCount} NEW
-                      </span>
-                    )}
-                    <ChevronRight className="w-5 h-5 text-white/70" />
-                  </div>
+                  <ChevronRight className="w-5 h-5 text-white/70" />
                 </div>
                 <h3 className="text-lg font-bold mb-1">{category.title}</h3>
                 <p className="text-white/90 text-sm">{stats.total} articles</p>
