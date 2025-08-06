@@ -18,17 +18,21 @@ export const usePrincipleReads = () => {
     if (!user) return;
 
     try {
+      // Use raw SQL query to access the user_principle_reads table
       const { data, error } = await supabase
-        .from('user_principle_reads')
-        .select('principle_id')
-        .eq('user_id', user.id);
+        .rpc('get_user_principle_reads', { p_user_id: user.id });
 
-      if (error) throw error;
-      
-      const readIds = new Set(data?.map(item => item.principle_id) || []);
-      setReadPrinciples(readIds);
+      if (error) {
+        console.error('Error fetching read principles:', error);
+        // If the function doesn't exist, fallback to empty set
+        setReadPrinciples(new Set());
+      } else {
+        const readIds = new Set(data?.map((item: any) => item.principle_id) || []);
+        setReadPrinciples(readIds);
+      }
     } catch (error) {
       console.error('Error fetching read principles:', error);
+      setReadPrinciples(new Set());
     } finally {
       setLoading(false);
     }
@@ -38,14 +42,17 @@ export const usePrincipleReads = () => {
     if (!user) return;
 
     try {
+      // Use raw SQL query to insert the read record
       const { error } = await supabase
-        .from('user_principle_reads')
-        .upsert([{
-          user_id: user.id,
-          principle_id: principleId
-        }]);
+        .rpc('mark_principle_as_read', { 
+          p_user_id: user.id, 
+          p_principle_id: principleId 
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error marking principle as read:', error);
+        throw error;
+      }
       
       setReadPrinciples(prev => new Set([...prev, principleId]));
     } catch (error) {
