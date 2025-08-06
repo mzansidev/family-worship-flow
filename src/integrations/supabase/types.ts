@@ -358,7 +358,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_principle_reads: {
+        Args: { p_user_id: string }
+        Returns: {
+          principle_id: string
+        }[]
+      }
+      mark_principle_as_read: {
+        Args: { p_user_id: string; p_principle_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       user_role: "admin" | "user"
