@@ -2,55 +2,59 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { useToast } from '@/hooks/use-toast';
 
-interface FamilyMember {
+export interface FamilyMember {
   id: string;
   name: string;
-  role: string;
+  role: 'parent' | 'child' | 'teen' | 'participant';
   created_at: string;
 }
 
 export const useFamilyMembers = () => {
-  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [members, setMembers] = useState<FamilyMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const { user } = useAuth();
-  const { toast } = useToast();
 
-  const fetchFamilyMembers = async () => {
+  const fetchMembers = async () => {
     if (!user) {
       setLoading(false);
       return;
     }
 
     try {
+      setError('');
       const { data, error } = await supabase
         .from('family_members')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as any)
         .order('created_at', { ascending: true });
 
       if (error) {
         console.error('Error fetching family members:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load family members',
-          variant: 'destructive',
-        });
+        setError('Failed to load family members');
         return;
       }
 
-      if (data) {
-        setFamilyMembers(data as FamilyMember[]);
+      if (data && Array.isArray(data)) {
+        // Type guard to ensure we have valid data
+        const validMembers = data.filter(member => 
+          member && typeof member === 'object' && 
+          'id' in member && 'name' in member && 'role' in member && 'created_at' in member
+        );
+        setMembers(validMembers as FamilyMember[]);
+      } else {
+        setMembers([]);
       }
     } catch (error) {
-      console.error('Error in fetchFamilyMembers:', error);
+      console.error('Error in fetchMembers:', error);
+      setError('Failed to load family members');
     } finally {
       setLoading(false);
     }
   };
 
-  const addFamilyMember = async (name: string, role: string = 'participant') => {
+  const addMember = async (name: string, role: FamilyMember['role']) => {
     if (!user) return;
 
     try {
@@ -60,93 +64,79 @@ export const useFamilyMembers = () => {
           user_id: user.id,
           name,
           role,
-        })
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
 
-      if (data) {
-        setFamilyMembers(prev => [...prev, data as FamilyMember]);
-        toast({
-          title: 'Success',
-          description: `${name} has been added to your family`,
-        });
+      if (data && typeof data === 'object' && 'id' in data) {
+        const newMember = data as FamilyMember;
+        setMembers(prev => [...prev, newMember]);
+        return newMember;
       }
     } catch (error) {
       console.error('Error adding family member:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add family member',
-        variant: 'destructive',
-      });
+      setError('Failed to add family member');
+      throw error;
     }
   };
 
-  const updateFamilyMember = async (id: string, name: string, role: string) => {
+  const updateMember = async (id: string, name: string, role: FamilyMember['role']) => {
+    if (!user) return;
+
     try {
       const { error } = await supabase
         .from('family_members')
-        .update({ name, role })
-        .eq('id', id);
+        .update({ name, role } as any)
+        .eq('id', id as any);
 
       if (error) throw error;
 
-      setFamilyMembers(prev =>
-        prev.map(member =>
-          member.id === id ? { ...member, name, role } : member
+      setMembers(prev => 
+        prev.map(member => 
+          member.id === id 
+            ? { ...member, name, role }
+            : member
         )
       );
-
-      toast({
-        title: 'Success',
-        description: 'Family member updated',
-      });
     } catch (error) {
       console.error('Error updating family member:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update family member',
-        variant: 'destructive',
-      });
+      setError('Failed to update family member');
+      throw error;
     }
   };
 
-  const deleteFamilyMember = async (id: string) => {
+  const deleteMember = async (id: string) => {
+    if (!user) return;
+
     try {
       const { error } = await supabase
         .from('family_members')
         .delete()
-        .eq('id', id);
+        .eq('id', id as any);
 
       if (error) throw error;
 
-      setFamilyMembers(prev => prev.filter(member => member.id !== id));
-
-      toast({
-        title: 'Success',
-        description: 'Family member removed',
-      });
+      setMembers(prev => prev.filter(member => member.id !== id));
     } catch (error) {
       console.error('Error deleting family member:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to remove family member',
-        variant: 'destructive',
-      });
+      setError('Failed to delete family member');
+      throw error;
     }
   };
 
   useEffect(() => {
-    fetchFamilyMembers();
+    fetchMembers();
   }, [user]);
 
   return {
-    familyMembers,
+    members,
     loading,
-    addFamilyMember,
-    updateFamilyMember,
-    deleteFamilyMember,
-    refetch: fetchFamilyMembers,
+    error,
+    addMember,
+    updateMember,
+    deleteMember,
+    refetch: fetchMembers
   };
 };

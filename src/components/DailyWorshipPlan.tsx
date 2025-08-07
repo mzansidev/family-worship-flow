@@ -94,8 +94,8 @@ export const DailyWorshipPlan = () => {
       const { data: existingPlan, error } = await supabase
         .from('daily_worship_entries')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('date', today)
+        .eq('user_id', user.id as any)
+        .eq('date', today as any)
         .maybeSingle();
 
       if (error) {
@@ -103,7 +103,7 @@ export const DailyWorshipPlan = () => {
         return;
       }
 
-      if (existingPlan) {
+      if (existingPlan && existingPlan !== null && typeof existingPlan === 'object' && 'opening_song' in existingPlan) {
         setCurrentPlan({
           openingSong: existingPlan.opening_song || '',
           bibleReading: existingPlan.bible_reading || '',
@@ -112,7 +112,7 @@ export const DailyWorshipPlan = () => {
           closingSong: existingPlan.closing_song || '',
           theme: existingPlan.theme || ''
         });
-        setIsCompleted(existingPlan.is_completed || false);
+        setIsCompleted((existingPlan as any).is_completed || false);
         return;
       }
 
@@ -133,7 +133,7 @@ export const DailyWorshipPlan = () => {
           closing_song: randomPlan.closingSong,
           theme: randomPlan.theme,
           is_completed: false
-        }, { 
+        } as any, { 
           onConflict: 'user_id,date' 
         });
     } catch (error) {
@@ -149,9 +149,9 @@ export const DailyWorshipPlan = () => {
     try {
       const { error } = await supabase
         .from('daily_worship_entries')
-        .update({ is_completed: true })
-        .eq('user_id', user.id)
-        .eq('date', today);
+        .update({ is_completed: true } as any)
+        .eq('user_id', user.id as any)
+        .eq('date', today as any);
 
       if (error) throw error;
 
@@ -191,7 +191,7 @@ export const DailyWorshipPlan = () => {
           application: newPlan.application,
           closing_song: newPlan.closingSong,
           theme: newPlan.theme
-        }, { 
+        } as any, { 
           onConflict: 'user_id,date' 
         });
     }
@@ -208,7 +208,7 @@ export const DailyWorshipPlan = () => {
         user_id: user.id,
         daily_plan_source: planSource,
         default_age_range: ageRange
-      }, { 
+      } as any, { 
         onConflict: 'user_id' 
       });
   };
@@ -220,12 +220,12 @@ export const DailyWorshipPlan = () => {
       supabase
         .from('user_preferences')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as any)
         .maybeSingle()
         .then(({ data, error }) => {
-          if (!error && data) {
-            setPlanSource((data.daily_plan_source as PlanSource) || 'random');
-            setAgeRange(data.default_age_range || 'family');
+          if (!error && data && typeof data === 'object' && 'daily_plan_source' in data) {
+            setPlanSource(((data as any).daily_plan_source as PlanSource) || 'random');
+            setAgeRange((data as any).default_age_range || 'family');
           }
         });
     }

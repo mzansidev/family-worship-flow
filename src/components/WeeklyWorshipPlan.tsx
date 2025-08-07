@@ -10,190 +10,193 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 
-type StudyType = 'book' | 'topic' | 'custom';
-type PlanType = 'weekly' | 'monthly' | 'quarterly';
+interface WorkshipPlan {
+  id: string;
+  study_type: 'book' | 'topic';
+  book_name?: string;
+  topic_name?: string;
+  current_week: number;
+  current_chapter?: number;
+  start_date: string;
+  end_date?: string;
+}
 
-const WeeklyWorshipPlan = () => {
-  const [studyType, setStudyType] = useState<StudyType>('book');
-  const [planType, setPlanType] = useState<PlanType>('weekly');
-  const [selectedBook, setSelectedBook] = useState('');
-  const [selectedTopic, setSelectedTopic] = useState('');
+export const WeeklyWorshipPlan = () => {
+  const [currentPlan, setCurrentPlan] = useState<WorkshipPlan | null>(null);
   const [currentWeek, setCurrentWeek] = useState(1);
-  const [currentPlan, setCurrentPlan] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [formData, setFormData] = useState({
+    study_type: 'book' as 'book' | 'topic',
+    book_name: '',
+    topic_name: '',
+    duration_weeks: 4
+  });
+  
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const bibleBooks = [
-    'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
-    'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel',
-    'Matthew', 'Mark', 'Luke', 'John', 'Acts',
-    'Romans', '1 Corinthians', '2 Corinthians', 'Galatians', 'Ephesians',
-    'Psalms', 'Proverbs', 'Ecclesiastes', 'Song of Solomon'
-  ];
-
-  const topicStudies = [
-    'Prayer and Faith', 'Love and Relationships', 'Wisdom and Decision Making',
-    'Forgiveness and Grace', 'Service and Ministry', 'Hope and Perseverance',
-    'Stewardship and Giving', 'Family Values', 'Character Development',
-    'Spiritual Warfare', 'The Fruit of the Spirit', 'End Times'
-  ];
-
-  const loadCurrentPlan = async () => {
+  const fetchCurrentPlan = async () => {
     if (!user) return;
 
     try {
       const { data: plan, error } = await supabase
         .from('worship_plans')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
+        .eq('user_id', user.id as any)
+        .eq('is_active', true as any)
         .maybeSingle();
 
       if (error) {
-        console.error('Error loading plan:', error);
+        console.error('Error fetching plan:', error);
+        setLoading(false);
         return;
       }
 
-      if (plan) {
-        setCurrentPlan(plan);
-        setStudyType(plan.study_type as StudyType);
-        if (plan.study_type === 'book') {
-          setSelectedBook(plan.book_name || '');
-        } else if (plan.study_type === 'topic') {
-          setSelectedTopic(plan.topic_name || '');
-        }
-        setCurrentWeek(plan.current_week || 1);
+      if (plan && typeof plan === 'object' && 'study_type' in plan) {
+        const planData = plan as any;
+        setCurrentPlan({
+          id: planData.id,
+          study_type: planData.study_type,
+          book_name: planData.book_name || '',
+          topic_name: planData.topic_name || '',
+          current_week: planData.current_week || 1,
+          current_chapter: planData.current_chapter || 1,
+          start_date: planData.start_date,
+          end_date: planData.end_date
+        });
+        setCurrentWeek(planData.current_week || 1);
       }
     } catch (error) {
-      console.error('Error in loadCurrentPlan:', error);
+      console.error('Error in fetchCurrentPlan:', error);
     }
+    
+    setLoading(false);
   };
 
   const generateWeeklyContent = () => {
-    if (studyType === 'book' && selectedBook) {
-      return generateBookStudy(selectedBook, currentWeek);
-    } else if (studyType === 'topic' && selectedTopic) {
-      return generateTopicStudy(selectedTopic, currentWeek);
+    if (!currentPlan) return null;
+
+    const bibleBooks = {
+      'Genesis': { chapters: 50, theme: 'Beginnings and God\'s Promises' },
+      'Psalms': { chapters: 150, theme: 'Worship and Trust in God' },
+      'Proverbs': { chapters: 31, theme: 'Wisdom for Daily Living' },
+      'John': { chapters: 21, theme: 'Jesus, the Way to Life' },
+      'Romans': { chapters: 16, theme: 'Salvation and Christian Living' }
+    };
+
+    if (currentPlan.study_type === 'book' && currentPlan.book_name) {
+      const book = bibleBooks[currentPlan.book_name as keyof typeof bibleBooks];
+      if (book) {
+        const chaptersPerWeek = Math.ceil(book.chapters / 8); // Assume 8-week study
+        const startChapter = (currentWeek - 1) * chaptersPerWeek + 1;
+        const endChapter = Math.min(startChapter + chaptersPerWeek - 1, book.chapters);
+        
+        return {
+          title: `${currentPlan.book_name} Study - Week ${currentWeek}`,
+          reading: `${currentPlan.book_name} ${startChapter}${endChapter > startChapter ? `-${endChapter}` : ''}`,
+          theme: book.theme,
+          questions: [
+            `What does this passage teach us about God's character?`,
+            `How does this apply to our family relationships?`,
+            `What is one practical way we can live out this teaching this week?`,
+            `What questions does this passage raise for us to explore further?`
+          ]
+        };
+      }
+    } else if (currentPlan.study_type === 'topic' && currentPlan.topic_name) {
+      const topics = {
+        'Prayer': [
+          'Matthew 6:9-13 - The Lord\'s Prayer',
+          'Luke 18:1-8 - Persistent Prayer',
+          '1 Thessalonians 5:16-18 - Pray Continually',
+          'James 5:13-16 - Prayer for All Situations'
+        ],
+        'Faith': [
+          'Hebrews 11:1-6 - Faith Defined',
+          'Romans 10:17 - Faith Comes by Hearing',
+          'James 2:14-26 - Faith and Works',
+          'Matthew 17:20 - Faith Like a Mustard Seed'
+        ]
+      };
+
+      const topicReadings = topics[currentPlan.topic_name as keyof typeof topics] || [];
+      const reading = topicReadings[currentWeek - 1] || `Week ${currentWeek} reading`;
+
+      return {
+        title: `${currentPlan.topic_name} Study - Week ${currentWeek}`,
+        reading: reading,
+        theme: `Understanding ${currentPlan.topic_name}`,
+        questions: [
+          `How does this passage deepen our understanding of ${currentPlan.topic_name.toLowerCase()}?`,
+          `What examples do we see in this text?`,
+          `How can we apply this in our daily lives?`,
+          `What will we do differently this week because of what we learned?`
+        ]
+      };
     }
+
     return null;
   };
 
-  const generateBookStudy = (book: string, week: number) => {
-    const bookContent = {
-      'Genesis': [
-        { week: 1, chapter: '1-3', theme: 'Creation and Fall', verses: 'Genesis 1:31, 3:15' },
-        { week: 2, chapter: '6-9', theme: 'Noah and the Flood', verses: 'Genesis 8:20-21' },
-        { week: 3, chapter: '12', theme: 'Abraham\'s Call', verses: 'Genesis 12:1-3' }
-      ],
-      'Psalms': [
-        { week: 1, chapter: '1', theme: 'The Blessed Life', verses: 'Psalm 1:1-3' },
-        { week: 2, chapter: '23', theme: 'The Lord is My Shepherd', verses: 'Psalm 23:1-6' },
-        { week: 3, chapter: '91', theme: 'God\'s Protection', verses: 'Psalm 91:1-2' }
-      ],
-      'Matthew': [
-        { week: 1, chapter: '5-7', theme: 'The Sermon on the Mount', verses: 'Matthew 5:16' },
-        { week: 2, chapter: '14', theme: 'Jesus Walks on Water', verses: 'Matthew 14:29-31' },
-        { week: 3, chapter: '28', theme: 'The Great Commission', verses: 'Matthew 28:19-20' }
-      ]
-    };
-
-    const content = bookContent[book as keyof typeof bookContent] || bookContent['Genesis'];
-    const currentContent = content[week - 1] || content[0];
-
-    return {
-      title: `${book} Study - Week ${week}`,
-      reading: `${book} ${currentContent.chapter}`,
-      theme: currentContent.theme,
-      keyVerse: currentContent.verses,
-      discussion: [
-        `What does this passage teach us about ${currentContent.theme.toLowerCase()}?`,
-        'How can we apply this lesson to our daily lives?',
-        'What questions do you have about this passage?'
-      ]
-    };
-  };
-
-  const generateTopicStudy = (topic: string, week: number) => {
-    const topicContent = {
-      'Prayer and Faith': [
-        { theme: 'The Power of Prayer', verses: 'Matthew 21:22', reading: 'Matthew 6:5-15' },
-        { theme: 'Faith in Action', verses: 'James 2:26', reading: 'Hebrews 11:1-16' },
-        { theme: 'Trusting God', verses: 'Proverbs 3:5-6', reading: 'Psalm 37:3-7' }
-      ],
-      'Love and Relationships': [
-        { theme: 'God\'s Love for Us', verses: '1 John 4:19', reading: 'Romans 8:31-39' },
-        { theme: 'Loving Others', verses: 'John 13:34-35', reading: '1 Corinthians 13' },
-        { theme: 'Family Love', verses: 'Ephesians 6:1-4', reading: 'Colossians 3:12-21' }
-      ]
-    };
-
-    const content = topicContent[topic as keyof typeof topicContent] || topicContent['Prayer and Faith'];
-    const currentContent = content[week - 1] || content[0];
-
-    return {
-      title: `${topic} Study - Week ${week}`,
-      reading: currentContent.reading,
-      theme: currentContent.theme,
-      keyVerse: currentContent.verses,
-      discussion: [
-        `How does this passage help us understand ${currentContent.theme.toLowerCase()}?`,
-        'What practical steps can we take to apply this teaching?',
-        'How can our family grow in this area together?'
-      ]
-    };
-  };
-
-  const createNewPlan = async () => {
+  const handleCreatePlan = async () => {
     if (!user) return;
 
     const planData = {
       user_id: user.id,
-      study_type: studyType,
-      plan_type: planType,
-      book_name: studyType === 'book' ? selectedBook : null,
-      topic_name: studyType === 'topic' ? selectedTopic : null,
+      study_type: formData.study_type,
+      book_name: formData.study_type === 'book' ? formData.book_name : null,
+      topic_name: formData.study_type === 'topic' ? formData.topic_name : null,
       current_week: 1,
-      is_active: true,
+      current_chapter: 1,
       start_date: new Date().toISOString().split('T')[0],
-      end_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      end_date: new Date(Date.now() + formData.duration_weeks * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      is_active: true,
+      plan_type: 'weekly'
     };
 
     try {
       // Deactivate existing plans
       await supabase
         .from('worship_plans')
-        .update({ is_active: false })
-        .eq('user_id', user.id);
+        .update({ is_active: false } as any)
+        .eq('user_id', user.id as any);
 
       // Create new plan
       const { data, error } = await supabase
         .from('worship_plans')
-        .insert(planData)
+        .insert(planData as any)
         .select()
         .single();
 
       if (error) throw error;
 
-      setCurrentPlan(data);
-      setCurrentWeek(1);
-      setShowCreateDialog(false);
-      
       toast({
-        title: "Plan Created!",
-        description: "Your new weekly worship plan has been created."
+        title: "Success!",
+        description: "New weekly worship plan created!"
+      });
+
+      setShowCreateDialog(false);
+      fetchCurrentPlan();
+      
+      // Reset form
+      setFormData({
+        study_type: 'book',
+        book_name: '',
+        topic_name: '',
+        duration_weeks: 4
       });
     } catch (error) {
       console.error('Error creating plan:', error);
       toast({
         title: "Error",
-        description: "Failed to create plan",
+        description: "Failed to create worship plan",
         variant: "destructive"
       });
     }
   };
 
-  const advanceToNextWeek = async () => {
+  const handleAdvanceWeek = async () => {
     if (!currentPlan) return;
 
     const nextWeek = currentWeek + 1;
@@ -201,127 +204,136 @@ const WeeklyWorshipPlan = () => {
     try {
       await supabase
         .from('worship_plans')
-        .update({ current_week: nextWeek })
-        .eq('id', currentPlan.id);
+        .update({ current_week: nextWeek } as any)
+        .eq('id', currentPlan.id as any);
 
       setCurrentWeek(nextWeek);
       
       toast({
         title: "Week Advanced!",
-        description: `Moved to week ${nextWeek} of your study.`
+        description: `Now on week ${nextWeek} of your study.`
       });
     } catch (error) {
       console.error('Error advancing week:', error);
+      toast({
+        title: "Error",
+        description: "Failed to advance to next week",
+        variant: "destructive"
+      });
     }
   };
 
   useEffect(() => {
     if (user) {
-      loadCurrentPlan();
+      fetchCurrentPlan();
     }
   }, [user]);
 
-  const weeklyContent = generateWeeklyContent();
+  if (loading) {
+    return <div className="text-center p-8">Loading weekly worship plan...</div>;
+  }
 
   if (!currentPlan) {
     return (
-      <div className="max-w-4xl mx-auto p-6">
-        <Card className="text-center p-8">
-          <h2 className="text-2xl font-bold mb-4">Weekly Worship Plan</h2>
-          <p className="text-gray-600 mb-6">Create a structured worship plan to guide your family through Bible study.</p>
-          
-          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-            <DialogTrigger asChild>
-              <Button className="bg-emerald-500 hover:bg-emerald-600 text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Weekly Plan
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Worship Plan</DialogTitle>
-              </DialogHeader>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="study-type">Study Type</Label>
-                  <Select value={studyType} onValueChange={(value: StudyType) => setStudyType(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="book">Bible Book Study</SelectItem>
-                      <SelectItem value="topic">Topic Study</SelectItem>
-                      <SelectItem value="custom">Custom Plan</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {studyType === 'book' && (
-                  <div>
-                    <Label htmlFor="book">Select Bible Book</Label>
-                    <Select value={selectedBook} onValueChange={setSelectedBook}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a book..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {bibleBooks.map(book => (
-                          <SelectItem key={book} value={book}>{book}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {studyType === 'topic' && (
-                  <div>
-                    <Label htmlFor="topic">Select Topic</Label>
-                    <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose a topic..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {topicStudies.map(topic => (
-                          <SelectItem key={topic} value={topic}>{topic}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <div>
-                  <Label htmlFor="plan-type">Plan Duration</Label>
-                  <Select value={planType} onValueChange={(value: PlanType) => setPlanType(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="weekly">Weekly (7 weeks)</SelectItem>
-                      <SelectItem value="monthly">Monthly (4 weeks)</SelectItem>
-                      <SelectItem value="quarterly">Quarterly (12 weeks)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button 
-                  onClick={createNewPlan} 
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
-                  disabled={!selectedBook && !selectedTopic && studyType !== 'custom'}
+      <div className="text-center p-8 space-y-4">
+        <h2 className="text-2xl font-bold text-gray-800">No Active Weekly Plan</h2>
+        <p className="text-gray-600">Create a structured weekly worship plan for your family.</p>
+        
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-500 hover:bg-blue-600 text-white">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Weekly Plan
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Create Weekly Worship Plan</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Study Type</Label>
+                <Select 
+                  value={formData.study_type} 
+                  onValueChange={(value: 'book' | 'topic') => setFormData(prev => ({ ...prev, study_type: value }))}
                 >
-                  Create Plan
-                </Button>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="book">Bible Book Study</SelectItem>
+                    <SelectItem value="topic">Topical Study</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </DialogContent>
-          </Dialog>
-        </Card>
+
+              {formData.study_type === 'book' && (
+                <div className="space-y-2">
+                  <Label>Bible Book</Label>
+                  <Select 
+                    value={formData.book_name} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, book_name: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a book" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Genesis">Genesis</SelectItem>
+                      <SelectItem value="Psalms">Psalms</SelectItem>
+                      <SelectItem value="Proverbs">Proverbs</SelectItem>
+                      <SelectItem value="John">John</SelectItem>
+                      <SelectItem value="Romans">Romans</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {formData.study_type === 'topic' && (
+                <div className="space-y-2">
+                  <Label>Topic</Label>
+                  <Select 
+                    value={formData.topic_name} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, topic_name: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a topic" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Prayer">Prayer</SelectItem>
+                      <SelectItem value="Faith">Faith</SelectItem>
+                      <SelectItem value="Love">Love</SelectItem>
+                      <SelectItem value="Forgiveness">Forgiveness</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Duration (weeks)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={formData.duration_weeks}
+                  onChange={(e) => setFormData(prev => ({ ...prev, duration_weeks: parseInt(e.target.value) || 4 }))}
+                />
+              </div>
+
+              <Button onClick={handleCreatePlan} className="w-full">
+                Create Plan
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
 
+  const weeklyContent = generateWeeklyContent();
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0">
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
         <div className="p-6">
           <div className="flex items-center justify-between">
             <div>
@@ -334,158 +346,158 @@ const WeeklyWorshipPlan = () => {
               </p>
             </div>
             <div className="text-right">
-              <div className="text-sm text-blue-100">Current Week</div>
-              <div className="text-3xl font-bold">{currentWeek}</div>
+              <div className="text-3xl font-bold">Week {currentWeek}</div>
+              <div className="text-blue-100 text-sm">Current Progress</div>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* Current Week Content */}
       {weeklyContent && (
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold flex items-center">
-                <Book className="w-5 h-5 mr-2 text-blue-500" />
-                {weeklyContent.title}
+        <div className="space-y-4">
+          <Card className="border-2 border-blue-200 bg-blue-50">
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+                <Book className="w-5 h-5 mr-2 text-gray-600" />
+                This Week's Reading
               </h3>
-              <Button 
-                onClick={advanceToNextWeek}
-                className="bg-emerald-500 hover:bg-emerald-600 text-white"
-              >
-                Next Week
-              </Button>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
-                    <Book className="w-4 h-4 mr-2" />
-                    Bible Reading
-                  </h4>
-                  <p className="text-blue-700">{weeklyContent.reading}</p>
-                </div>
-
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-purple-800 mb-2 flex items-center">
-                    <Target className="w-4 h-4 mr-2" />
-                    Theme
-                  </h4>
-                  <p className="text-purple-700">{weeklyContent.theme}</p>
-                </div>
-
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-green-800 mb-2">Key Verse</h4>
-                  <p className="text-green-700 italic">"{weeklyContent.keyVerse}"</p>
-                </div>
-              </div>
-
-              <div className="bg-orange-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-orange-800 mb-3 flex items-center">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Discussion Questions
-                </h4>
-                <ol className="space-y-2">
-                  {weeklyContent.discussion.map((question, index) => (
-                    <li key={index} className="flex">
-                      <span className="bg-orange-200 text-orange-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-3 mt-0.5 flex-shrink-0">
-                        {index + 1}
-                      </span>
-                      <span className="text-orange-700">{question}</span>
-                    </li>
-                  ))}
-                </ol>
+              <div className="space-y-2">
+                <p className="font-medium text-blue-700">{weeklyContent.reading}</p>
+                <p className="text-gray-600 text-sm italic">{weeklyContent.theme}</p>
               </div>
             </div>
-          </div>
-        </Card>
+          </Card>
+
+          <Card className="border-2 border-orange-200 bg-orange-50">
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+                <MessageCircle className="w-5 h-5 mr-2 text-gray-600" />
+                Discussion Questions
+              </h3>
+              <ol className="space-y-2">
+                {weeklyContent.questions.map((question, index) => (
+                  <li key={index} className="flex">
+                    <span className="bg-orange-200 text-orange-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-3 mt-0.5 flex-shrink-0">
+                      {index + 1}
+                    </span>
+                    <span className="text-gray-700">{question}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </Card>
+
+          <Card className="border-2 border-green-200 bg-green-50">
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+                <Target className="w-5 h-5 mr-2 text-gray-600" />
+                This Week's Challenge
+              </h3>
+              <p className="text-gray-700 leading-relaxed">
+                Choose one key insight from this week's reading and find a practical way to apply it in your family life. 
+                Share your experiences during next week's worship time.
+              </p>
+            </div>
+          </Card>
+        </div>
       )}
 
-      {/* Plan Management */}
-      <Card>
-        <div className="p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center">
-            <Settings className="w-5 h-5 mr-2 text-gray-600" />
-            Plan Settings
-          </h3>
-          
-          <div className="flex gap-4">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create New Plan
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create New Worship Plan</DialogTitle>
-                </DialogHeader>
-                
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="study-type">Study Type</Label>
-                    <Select value={studyType} onValueChange={(value: StudyType) => setStudyType(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="book">Bible Book Study</SelectItem>
-                        <SelectItem value="topic">Topic Study</SelectItem>
-                        <SelectItem value="custom">Custom Plan</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+      <div className="flex gap-2">
+        <Button 
+          onClick={handleAdvanceWeek}
+          className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2"
+        >
+          <Clock className="w-4 h-4" />
+          Next Week
+        </Button>
+        
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              New Plan
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Create Weekly Worship Plan</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Study Type</Label>
+                <Select 
+                  value={formData.study_type} 
+                  onValueChange={(value: 'book' | 'topic') => setFormData(prev => ({ ...prev, study_type: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="book">Bible Book Study</SelectItem>
+                    <SelectItem value="topic">Topical Study</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                  {studyType === 'book' && (
-                    <div>
-                      <Label htmlFor="book">Select Bible Book</Label>
-                      <Select value={selectedBook} onValueChange={setSelectedBook}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose a book..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {bibleBooks.map(book => (
-                            <SelectItem key={book} value={book}>{book}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  {studyType === 'topic' && (
-                    <div>
-                      <Label htmlFor="topic">Select Topic</Label>
-                      <Select value={selectedTopic} onValueChange={setSelectedTopic}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choose a topic..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {topicStudies.map(topic => (
-                            <SelectItem key={topic} value={topic}>{topic}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-
-                  <Button 
-                    onClick={createNewPlan} 
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
-                    disabled={!selectedBook && !selectedTopic && studyType !== 'custom'}
+              {formData.study_type === 'book' && (
+                <div className="space-y-2">
+                  <Label>Bible Book</Label>
+                  <Select 
+                    value={formData.book_name} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, book_name: value }))}
                   >
-                    Create Plan
-                  </Button>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a book" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Genesis">Genesis</SelectItem>
+                      <SelectItem value="Psalms">Psalms</SelectItem>
+                      <SelectItem value="Proverbs">Proverbs</SelectItem>
+                      <SelectItem value="John">John</SelectItem>
+                      <SelectItem value="Romans">Romans</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-      </Card>
+              )}
+
+              {formData.study_type === 'topic' && (
+                <div className="space-y-2">
+                  <Label>Topic</Label>
+                  <Select 
+                    value={formData.topic_name} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, topic_name: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a topic" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Prayer">Prayer</SelectItem>
+                      <SelectItem value="Faith">Faith</SelectItem>
+                      <SelectItem value="Love">Love</SelectItem>
+                      <SelectItem value="Forgiveness">Forgiveness</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Duration (weeks)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={formData.duration_weeks}
+                  onChange={(e) => setFormData(prev => ({ ...prev, duration_weeks: parseInt(e.target.value) || 4 }))}
+                />
+              </div>
+
+              <Button onClick={handleCreatePlan} className="w-full">
+                Create Plan
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 };
-
-export { WeeklyWorshipPlan };

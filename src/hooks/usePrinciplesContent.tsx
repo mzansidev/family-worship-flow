@@ -1,9 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
 
-interface PrincipleContent {
+export interface PrincipleContent {
   id: string;
   title: string;
   content: string;
@@ -17,106 +16,103 @@ interface PrincipleContent {
 export const usePrinciplesContent = () => {
   const [principles, setPrinciples] = useState<PrincipleContent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const [error, setError] = useState('');
 
   const fetchPrinciples = async () => {
     try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error: fetchError } = await supabase
+      setError('');
+      const { data, error } = await supabase
         .from('principles_content')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (fetchError) {
-        console.error('Error fetching principles:', fetchError);
+      if (error) {
+        console.error('Error fetching principles:', error);
         setError('Failed to load principles');
         return;
       }
 
-      if (data) {
-        setPrinciples(data as PrincipleContent[]);
+      if (data && Array.isArray(data)) {
+        // Type guard to ensure we have valid data
+        const validPrinciples = data.filter(principle => 
+          principle && typeof principle === 'object' && 
+          'id' in principle && 'title' in principle && 'content' in principle
+        );
+        setPrinciples(validPrinciples as PrincipleContent[]);
+      } else {
+        setPrinciples([]);
       }
     } catch (error) {
       console.error('Error in fetchPrinciples:', error);
-      setError('An unexpected error occurred');
+      setError('Failed to load principles');
     } finally {
       setLoading(false);
     }
   };
 
   const addPrinciple = async (principle: Omit<PrincipleContent, 'id' | 'created_at' | 'updated_at'>) => {
-    if (!user) return null;
-
     try {
       const { data, error } = await supabase
         .from('principles_content')
-        .insert(principle)
+        .insert(principle as any)
         .select()
         .single();
 
       if (error) throw error;
 
-      if (data) {
-        setPrinciples(prev => [data as PrincipleContent, ...prev]);
+      if (data && typeof data === 'object') {
+        const newPrinciple = data as PrincipleContent;
+        setPrinciples(prev => [newPrinciple, ...prev]);
+        return newPrinciple;
       }
-
-      return data;
     } catch (error) {
       console.error('Error adding principle:', error);
       setError('Failed to add principle');
-      return null;
+      throw error;
     }
   };
 
   const updatePrinciple = async (id: string, updates: Partial<PrincipleContent>) => {
-    if (!user) return null;
-
     try {
       const { data, error } = await supabase
         .from('principles_content')
-        .update(updates)
-        .eq('id', id)
+        .update(updates as any)
+        .eq('id', id as any)
         .select()
         .single();
 
       if (error) throw error;
 
-      if (data) {
+      if (data && typeof data === 'object') {
+        const updatedPrinciple = data as PrincipleContent;
         setPrinciples(prev =>
           prev.map(principle =>
-            principle.id === id ? { ...principle, ...data } : principle
+            principle.id === id ? updatedPrinciple : principle
           )
         );
+        return updatedPrinciple;
       }
-
-      return data;
     } catch (error) {
       console.error('Error updating principle:', error);
       setError('Failed to update principle');
-      return null;
+      throw error;
     }
   };
 
   const deletePrinciple = async (id: string) => {
-    if (!user) return false;
-
     try {
       const { error } = await supabase
         .from('principles_content')
         .delete()
-        .eq('id', id);
+        .eq('id', id as any);
 
       if (error) throw error;
 
       setPrinciples(prev => prev.filter(principle => principle.id !== id));
-      return true;
     } catch (error) {
       console.error('Error deleting principle:', error);
       setError('Failed to delete principle');
-      return false;
+      throw error;
     }
   };
 
@@ -131,6 +127,6 @@ export const usePrinciplesContent = () => {
     addPrinciple,
     updatePrinciple,
     deletePrinciple,
-    refetch: fetchPrinciples,
+    refetch: fetchPrinciples
   };
 };
