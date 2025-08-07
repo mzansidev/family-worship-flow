@@ -94,8 +94,8 @@ export const DailyWorshipPlan = () => {
       const { data: existingPlan, error } = await supabase
         .from('daily_worship_entries')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('date', today)
+        .eq('user_id' as any, user.id)
+        .eq('date' as any, today)
         .maybeSingle();
 
       if (error) {
@@ -103,7 +103,7 @@ export const DailyWorshipPlan = () => {
         return;
       }
 
-      if (existingPlan && typeof existingPlan === 'object' && 'opening_song' in existingPlan) {
+      if (existingPlan && typeof existingPlan === 'object' && existingPlan !== null && 'opening_song' in existingPlan) {
         setCurrentPlan({
           openingSong: existingPlan.opening_song || '',
           bibleReading: existingPlan.bible_reading || '',
@@ -150,8 +150,8 @@ export const DailyWorshipPlan = () => {
       const { error } = await supabase
         .from('daily_worship_entries')
         .update({ is_completed: true } as any)
-        .eq('user_id', user.id)
-        .eq('date', today);
+        .eq('user_id' as any, user.id)
+        .eq('date' as any, today);
 
       if (error) throw error;
 
@@ -220,10 +220,10 @@ export const DailyWorshipPlan = () => {
       supabase
         .from('user_preferences')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id' as any, user.id)
         .maybeSingle()
         .then(({ data, error }) => {
-          if (!error && data && typeof data === 'object' && 'daily_plan_source' in data) {
+          if (!error && data && typeof data === 'object' && data !== null && 'daily_plan_source' in data) {
             setPlanSource((data.daily_plan_source as PlanSource) || 'random');
             setAgeRange(data.default_age_range || 'family');
           }

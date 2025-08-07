@@ -175,9 +175,9 @@ export const WeeklyWorshipPlan = () => {
 
       if (error) throw error;
       
-      if (data && typeof data === 'object' && 'id' in data) {
+      if (data && typeof data === 'object' && data !== null && 'id' in data) {
         setCurrentPlan(data);
-        await generateWeeklyEntries(data.id);
+        await generateWeeklyEntries(data.id as string);
         
         toast({
           title: "Success",
@@ -243,8 +243,8 @@ export const WeeklyWorshipPlan = () => {
     const { data: existingData, error } = await supabase
       .from('daily_worship_entries')
       .select('*')
-      .eq('user_id', user.id)
-      .eq('date', day.date)
+      .eq('user_id' as any, user.id)
+      .eq('date' as any, day.date)
       .maybeSingle();
 
     if (error) {
@@ -276,9 +276,9 @@ export const WeeklyWorshipPlan = () => {
     const { data, error } = await supabase
       .from('worship_plans')
       .select('*')
-      .eq('user_id', user.id)
-      .eq('plan_type', 'weekly')
-      .eq('is_active', true)
+      .eq('user_id' as any, user.id)
+      .eq('plan_type' as any, 'weekly')
+      .eq('is_active' as any, true)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -288,7 +288,7 @@ export const WeeklyWorshipPlan = () => {
       return;
     }
 
-    if (data && typeof data === 'object' && 'study_type' in data) {
+    if (data && typeof data === 'object' && data !== null && 'study_type' in data) {
       setCurrentPlan(data);
       setStudyType(data.study_type as 'book' | 'topic');
       if (data.book_name) setSelectedBook(data.book_name);
@@ -298,7 +298,7 @@ export const WeeklyWorshipPlan = () => {
       const { data: entries, error: entriesError } = await supabase
         .from('daily_worship_entries')
         .select('*')
-        .eq('worship_plan_id', data.id)
+        .eq('worship_plan_id' as any, data.id)
         .order('date');
       
       if (entriesError) {
