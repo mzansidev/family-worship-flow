@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Book, Heart, Clock, Play, Pause, CheckCircle, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,7 +65,9 @@ export const WeeklyWorshipPlan = () => {
     );
   }
 
-  const fetchCurrentPlan = async () => {
+  const fetchCurrentPlan = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
       const { data: plan, error } = await supabase
         .from('worship_plans')
@@ -92,7 +94,7 @@ export const WeeklyWorshipPlan = () => {
     } catch (error) {
       console.error('Error in fetchCurrentPlan:', error);
     }
-  };
+  }, [user?.id]);
 
   const createNewPlan = async () => {
     setLoading(true);
@@ -257,7 +259,7 @@ export const WeeklyWorshipPlan = () => {
 
   useEffect(() => {
     fetchCurrentPlan();
-  }, [user]);
+  }, [fetchCurrentPlan]);
 
   if (!currentPlan) {
     return (
