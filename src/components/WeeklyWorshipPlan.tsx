@@ -169,13 +169,13 @@ export const WeeklyWorshipPlan = () => {
           topic_name: studyType === 'topic' ? selectedTopic : null,
           start_date: new Date().toISOString().split('T')[0],
           is_active: true
-        } as any)
+        })
         .select()
         .single();
 
       if (error) throw error;
       
-      if (data && data.id !== undefined) {
+      if (data) {
         setCurrentPlan(data);
         await generateWeeklyEntries(data.id);
         
@@ -215,7 +215,7 @@ export const WeeklyWorshipPlan = () => {
 
     const { error } = await supabase
       .from('daily_worship_entries')
-      .upsert(entries as any, { onConflict: 'user_id,date' });
+      .upsert(entries, { onConflict: 'user_id,date' });
 
     if (!error) {
       setWeeklyEntries(entries);
@@ -243,8 +243,8 @@ export const WeeklyWorshipPlan = () => {
     const { data: existingData, error } = await supabase
       .from('daily_worship_entries')
       .select('*')
-      .eq('user_id' as any, user.id)
-      .eq('date' as any, day.date)
+      .eq('user_id', user.id)
+      .eq('date', day.date)
       .maybeSingle();
 
     if (error) {
@@ -276,9 +276,9 @@ export const WeeklyWorshipPlan = () => {
     const { data, error } = await supabase
       .from('worship_plans')
       .select('*')
-      .eq('user_id' as any, user.id)
-      .eq('plan_type' as any, 'weekly')
-      .eq('is_active' as any, true)
+      .eq('user_id', user.id)
+      .eq('plan_type', 'weekly')
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -288,7 +288,7 @@ export const WeeklyWorshipPlan = () => {
       return;
     }
 
-    if (data && data.study_type !== undefined) {
+    if (data) {
       setCurrentPlan(data);
       setStudyType(data.study_type as 'book' | 'topic');
       if (data.book_name) setSelectedBook(data.book_name);
@@ -298,7 +298,7 @@ export const WeeklyWorshipPlan = () => {
       const { data: entries, error: entriesError } = await supabase
         .from('daily_worship_entries')
         .select('*')
-        .eq('worship_plan_id' as any, data.id)
+        .eq('worship_plan_id', data.id)
         .order('date');
       
       if (entriesError) {
