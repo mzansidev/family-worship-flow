@@ -32,8 +32,8 @@ export const useReflections = () => {
       const { data, error } = await supabase
         .from('user_reflections')
         .select('*')
-        .eq('user_id', user.id)
-        .order('worship_date', { ascending: false });
+        .eq('user_id' as any, user.id)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setReflections((data as Reflection[]) || []);
@@ -44,7 +44,7 @@ export const useReflections = () => {
     }
   };
 
-  const addReflection = async (reflectionText: string, bibleVerse?: string, worshipDate?: string, dailyEntryId?: string) => {
+  const addReflection = async (reflection: Omit<Reflection, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
     if (!user) return;
 
     try {
@@ -52,11 +52,8 @@ export const useReflections = () => {
         .from('user_reflections')
         .insert({
           user_id: user.id,
-          reflection_text: reflectionText,
-          bible_verse: bibleVerse,
-          worship_date: worshipDate || new Date().toISOString().split('T')[0],
-          daily_entry_id: dailyEntryId
-        })
+          ...reflection
+        } as any)
         .select()
         .single();
 
@@ -73,8 +70,8 @@ export const useReflections = () => {
     try {
       const { error } = await supabase
         .from('user_reflections')
-        .update(updates)
-        .eq('id', id);
+        .update(updates as any)
+        .eq('id' as any, id);
 
       if (error) throw error;
       await fetchReflections();
@@ -89,7 +86,7 @@ export const useReflections = () => {
       const { error } = await supabase
         .from('user_reflections')
         .delete()
-        .eq('id', id);
+        .eq('id' as any, id);
 
       if (error) throw error;
       await fetchReflections();
