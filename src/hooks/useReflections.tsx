@@ -29,14 +29,14 @@ export const useReflections = () => {
       const { data, error } = await supabase
         .from('user_reflections')
         .select('*')
-        .eq('user_id' as any, user.id)
+        .eq('user_id', user.id as any)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
       const mappedReflections: Reflection[] = (data || [])
         .filter(item => item && typeof item === 'object')
-        .map(item => ({
+        .map((item: any) => ({
           id: item.id || '',
           content: item.reflection_text || '',
           date: item.worship_date || '',
@@ -88,7 +88,7 @@ export const useReflections = () => {
       const { error } = await supabase
         .from('user_reflections')
         .update(dbUpdates)
-        .eq('id' as any, id);
+        .eq('id', id as any);
 
       if (error) throw error;
       await fetchReflections();
@@ -103,7 +103,7 @@ export const useReflections = () => {
       const { error } = await supabase
         .from('user_reflections')
         .delete()
-        .eq('id' as any, id);
+        .eq('id', id as any);
 
       if (error) throw error;
       await fetchReflections();

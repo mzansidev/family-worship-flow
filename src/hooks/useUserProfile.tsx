@@ -29,11 +29,11 @@ export const useUserProfile = () => {
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', user.id as any)
         .single();
 
       if (error) throw error;
-      setProfile(data);
+      setProfile(data as unknown as UserProfile);
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
@@ -47,15 +47,15 @@ export const useUserProfile = () => {
     try {
       const { data, error } = await supabase
         .from('user_profiles')
-        .update(updates)
-        .eq('id', user.id)
+        .update(updates as any)
+        .eq('id', user.id as any)
         .select()
         .single();
 
       if (error) throw error;
       
       // Update local state immediately
-      setProfile(prevProfile => prevProfile ? { ...prevProfile, ...data } : data);
+      setProfile(prevProfile => prevProfile ? { ...prevProfile, ...(data as unknown as UserProfile) } : (data as unknown as UserProfile));
       return data;
     } catch (error) {
       console.error('Error updating profile:', error);

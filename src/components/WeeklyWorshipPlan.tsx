@@ -51,11 +51,11 @@ export const WeeklyWorshipPlan = () => {
 
       if (plan) {
         setCurrentPlan(plan);
-        setStudyType(plan.study_type || 'bible-book');
-        if (plan.study_type === 'bible-book') {
-          setSelectedBook(plan.book_name || 'Genesis');
-        } else if (plan.study_type === 'topical') {
-          setSelectedTopic(plan.topic_name || 'Prayer and Faith');
+        setStudyType((plan as any).study_type || 'bible-book');
+        if ((plan as any).study_type === 'bible-book') {
+          setSelectedBook((plan as any).book_name || 'Genesis');
+        } else if ((plan as any).study_type === 'topical') {
+          setSelectedTopic((plan as any).topic_name || 'Prayer and Faith');
         }
       }
     } catch (error) {

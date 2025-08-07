@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Music, Book, MessageCircle, Target, Users, Check } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -105,14 +104,14 @@ export const DailyWorshipPlan = () => {
 
       if (existingPlan && existingPlan.opening_song) {
         setCurrentPlan({
-          openingSong: existingPlan.opening_song || '',
-          bibleReading: existingPlan.bible_reading || '',
-          discussion: existingPlan.discussion_questions || [],
-          application: existingPlan.application || '',
-          closingSong: existingPlan.closing_song || '',
-          theme: existingPlan.theme || ''
+          openingSong: (existingPlan as any).opening_song || '',
+          bibleReading: (existingPlan as any).bible_reading || '',
+          discussion: (existingPlan as any).discussion_questions || [],
+          application: (existingPlan as any).application || '',
+          closingSong: (existingPlan as any).closing_song || '',
+          theme: (existingPlan as any).theme || ''
         });
-        setIsCompleted(existingPlan.is_completed || false);
+        setIsCompleted((existingPlan as any).is_completed || false);
         return;
       }
 
@@ -223,9 +222,9 @@ export const DailyWorshipPlan = () => {
         .eq('user_id', user.id as any)
         .maybeSingle()
         .then(({ data, error }) => {
-          if (!error && data && data.daily_plan_source) {
-            setPlanSource((data.daily_plan_source as PlanSource) || 'random');
-            setAgeRange(data.default_age_range || 'family');
+          if (!error && data && (data as any).daily_plan_source) {
+            setPlanSource(((data as any).daily_plan_source as PlanSource) || 'random');
+            setAgeRange((data as any).default_age_range || 'family');
           }
         });
     }
