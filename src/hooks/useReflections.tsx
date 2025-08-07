@@ -34,13 +34,15 @@ export const useReflections = () => {
 
       if (error) throw error;
       
-      const mappedReflections: Reflection[] = (data || []).map(item => ({
-        id: item.id,
-        content: item.content || '',
-        date: item.date || '',
-        user_id: item.user_id || '',
-        created_at: item.created_at || ''
-      }));
+      const mappedReflections: Reflection[] = (data || [])
+        .filter(item => item && typeof item === 'object')
+        .map(item => ({
+          id: item.id || '',
+          content: item.reflection_text || '',
+          date: item.worship_date || '',
+          user_id: item.user_id || '',
+          created_at: item.created_at || ''
+        }));
       
       setReflections(mappedReflections);
     } catch (error) {
@@ -58,8 +60,8 @@ export const useReflections = () => {
         .from('user_reflections')
         .insert({ 
           user_id: user.id, 
-          content, 
-          date 
+          reflection_text: content, 
+          worship_date: date 
         } as any)
         .select()
         .single();
@@ -75,9 +77,17 @@ export const useReflections = () => {
 
   const updateReflection = async (id: string, updates: Partial<Reflection>) => {
     try {
+      const dbUpdates: any = {};
+      if (updates.content !== undefined) {
+        dbUpdates.reflection_text = updates.content;
+      }
+      if (updates.date !== undefined) {
+        dbUpdates.worship_date = updates.date;
+      }
+
       const { error } = await supabase
         .from('user_reflections')
-        .update(updates as any)
+        .update(dbUpdates)
         .eq('id' as any, id);
 
       if (error) throw error;

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Book, Heart, Clock, Play, Pause, CheckCircle, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
