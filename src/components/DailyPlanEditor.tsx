@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Music, Book, MessageCircle, Target, Plus, X, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -68,24 +67,24 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
     
     setLoading(true);
     try {
-      const dataToSave = {
-        user_id: user.id,
-        date: date,
-        opening_song: planData.openingSong,
-        bible_reading: planData.bibleReading,
-        theme: planData.theme,
-        discussion_questions: planData.discussionQuestions.filter(q => q.trim() !== ''),
-        application: planData.application,
-        closing_song: planData.closingSong,
-        reflection_notes: planData.reflectionNotes,
-        family_members_present: planData.familyMembers.split(',').map(m => m.trim()).filter(m => m !== ''),
-        leader_id: planData.leaderId || null,
-        assistant_id: planData.assistantId || null
-      };
-
       const { error } = await supabase
         .from('daily_worship_entries')
-        .upsert([dataToSave], { onConflict: 'user_id,date' });
+        .upsert({
+          user_id: user.id,
+          date: date,
+          opening_song: planData.openingSong,
+          bible_reading: planData.bibleReading,
+          theme: planData.theme,
+          discussion_questions: planData.discussionQuestions.filter(q => q.trim() !== ''),
+          application: planData.application,
+          closing_song: planData.closingSong,
+          reflection_notes: planData.reflectionNotes,
+          family_members_present: planData.familyMembers.split(',').map(m => m.trim()).filter(m => m !== ''),
+          leader_id: planData.leaderId || null,
+          assistant_id: planData.assistantId || null
+        }, { 
+          onConflict: 'user_id,date' 
+        });
 
       if (error) throw error;
 

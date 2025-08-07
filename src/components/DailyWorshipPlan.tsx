@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Music, Book, MessageCircle, Target, Users, Check } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -121,21 +120,21 @@ export const DailyWorshipPlan = () => {
       setCurrentPlan(randomPlan);
       
       // Save to database
-      const insertData = {
-        user_id: user.id,
-        date: today,
-        opening_song: randomPlan.openingSong,
-        bible_reading: randomPlan.bibleReading,
-        discussion_questions: randomPlan.discussion,
-        application: randomPlan.application,
-        closing_song: randomPlan.closingSong,
-        theme: randomPlan.theme,
-        is_completed: false
-      };
-
       await supabase
         .from('daily_worship_entries')
-        .upsert([insertData], { onConflict: 'user_id,date' });
+        .upsert({
+          user_id: user.id,
+          date: today,
+          opening_song: randomPlan.openingSong,
+          bible_reading: randomPlan.bibleReading,
+          discussion_questions: randomPlan.discussion,
+          application: randomPlan.application,
+          closing_song: randomPlan.closingSong,
+          theme: randomPlan.theme,
+          is_completed: false
+        }, { 
+          onConflict: 'user_id,date' 
+        });
     } catch (error) {
       console.error('Error in fetchTodaysPlan:', error);
     }
@@ -179,20 +178,21 @@ export const DailyWorshipPlan = () => {
 
     if (user) {
       const today = new Date().toISOString().split('T')[0];
-      const insertData = {
-        user_id: user.id,
-        date: today,
-        opening_song: newPlan.openingSong,
-        bible_reading: newPlan.bibleReading,
-        discussion_questions: newPlan.discussion,
-        application: newPlan.application,
-        closing_song: newPlan.closingSong,
-        theme: newPlan.theme
-      };
-
+      
       await supabase
         .from('daily_worship_entries')
-        .upsert([insertData], { onConflict: 'user_id,date' });
+        .upsert({
+          user_id: user.id,
+          date: today,
+          opening_song: newPlan.openingSong,
+          bible_reading: newPlan.bibleReading,
+          discussion_questions: newPlan.discussion,
+          application: newPlan.application,
+          closing_song: newPlan.closingSong,
+          theme: newPlan.theme
+        }, { 
+          onConflict: 'user_id,date' 
+        });
     }
     
     setLoading(false);
@@ -203,11 +203,13 @@ export const DailyWorshipPlan = () => {
 
     await supabase
       .from('user_preferences')
-      .upsert([{
+      .upsert({
         user_id: user.id,
         daily_plan_source: planSource,
         default_age_range: ageRange
-      }], { onConflict: 'user_id' });
+      }, { 
+        onConflict: 'user_id' 
+      });
   };
 
   useEffect(() => {

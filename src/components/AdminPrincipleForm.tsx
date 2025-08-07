@@ -52,17 +52,15 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
 
     setLoading(true);
     try {
-      const insertData = {
-        title: formData.title,
-        content: formData.content,
-        category_id: formData.category_id,
-        read_time: formData.read_time,
-        is_new: true
-      };
-
       const { error } = await supabase
         .from('principles_content')
-        .insert([insertData]);
+        .insert({
+          title: formData.title,
+          content: formData.content,
+          category_id: formData.category_id,
+          read_time: formData.read_time,
+          is_new: true
+        });
 
       if (error) throw error;
 
