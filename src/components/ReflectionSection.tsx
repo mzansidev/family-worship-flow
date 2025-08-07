@@ -44,8 +44,8 @@ export const ReflectionSection: React.FC<ReflectionSectionProps> = ({
     setSaving(true);
     try {
       if (user) {
-        // Save to database for logged-in users
-        await addReflection(reflectionText, date, bibleVerse, dailyEntryId);
+        // Save to database for logged-in users - only pass content and date
+        await addReflection(reflectionText, date);
       } else {
         // Save locally for guest users
         const reflection = {

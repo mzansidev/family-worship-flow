@@ -34,7 +34,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { familyMembers } = useFamilyMembers();
+  const { members } = useFamilyMembers();
 
   useEffect(() => {
     if (initialData) {
@@ -159,7 +159,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Family Responsibilities */}
-        {familyMembers.length > 0 && (
+        {members.length > 0 && (
           <Card className="lg:col-span-2">
             <div className="p-4">
               <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
@@ -175,7 +175,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">No leader assigned</SelectItem>
-                      {familyMembers.map((member) => (
+                      {members.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name}
                         </SelectItem>
@@ -191,7 +191,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">No assistant assigned</SelectItem>
-                      {familyMembers.map((member) => (
+                      {members.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name}
                         </SelectItem>
