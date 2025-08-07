@@ -28,7 +28,7 @@ export const usePrinciplesContent = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPrinciplesContent(data || []);
+      setPrinciplesContent((data as PrincipleContent[]) || []);
     } catch (error) {
       console.error('Error fetching principles:', error);
     } finally {

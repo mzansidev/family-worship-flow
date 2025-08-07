@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Calendar, ChevronRight, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -169,13 +170,13 @@ export const WeeklyWorshipPlan = () => {
           topic_name: studyType === 'topic' ? selectedTopic : null,
           start_date: new Date().toISOString().split('T')[0],
           is_active: true
-        } as any)
+        })
         .select()
         .single();
 
       if (error) throw error;
       
-      if (data) {
+      if (data && 'id' in data) {
         setCurrentPlan(data);
         await generateWeeklyEntries(data.id);
         
@@ -215,7 +216,7 @@ export const WeeklyWorshipPlan = () => {
 
     const { error } = await supabase
       .from('daily_worship_entries')
-      .upsert(entries as any, { onConflict: 'user_id,date' });
+      .upsert(entries, { onConflict: 'user_id,date' });
 
     if (!error) {
       setWeeklyEntries(entries);
@@ -243,7 +244,7 @@ export const WeeklyWorshipPlan = () => {
     const { data: existingData, error } = await supabase
       .from('daily_worship_entries')
       .select('*')
-      .eq('user_id', user.id as any)
+      .eq('user_id', user.id)
       .eq('date', day.date)
       .maybeSingle();
 
@@ -276,9 +277,9 @@ export const WeeklyWorshipPlan = () => {
     const { data, error } = await supabase
       .from('worship_plans')
       .select('*')
-      .eq('user_id', user.id as any)
-      .eq('plan_type', 'weekly' as any)
-      .eq('is_active', true as any)
+      .eq('user_id', user.id)
+      .eq('plan_type', 'weekly')
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -288,7 +289,7 @@ export const WeeklyWorshipPlan = () => {
       return;
     }
 
-    if (data) {
+    if (data && 'id' in data) {
       setCurrentPlan(data);
       setStudyType(data.study_type as 'book' | 'topic');
       if (data.book_name) setSelectedBook(data.book_name);
