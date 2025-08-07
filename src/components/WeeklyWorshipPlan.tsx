@@ -33,15 +33,46 @@ export const WeeklyWorshipPlan = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchCurrentPlan = async () => {
-    if (!user) return;
+  // Show login prompt if user is not authenticated
+  if (!user) {
+    return (
+      <div className="space-y-6">
+        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
+          <div className="p-6">
+            <h2 className="text-2xl font-bold mb-2 flex items-center">
+              <Calendar className="w-6 h-6 mr-2" />
+              Weekly Worship Plan
+            </h2>
+            <p className="text-purple-100">Create structured weekly worship experiences</p>
+          </div>
+        </Card>
 
+        <Card>
+          <div className="p-6 text-center">
+            <h3 className="text-lg font-semibold mb-4">Sign In Required</h3>
+            <p className="text-gray-600 mb-4">
+              Please sign in to create and manage your weekly worship plans.
+            </p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="bg-purple-500 hover:bg-purple-600 text-white"
+            >
+              Sign In
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  const fetchCurrentPlan = async () => {
     try {
       const { data: plan, error } = await supabase
         .from('worship_plans')
         .select('*')
-        .eq('user_id', user.id as any)
-        .eq('is_active', true as any)
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('plan_type', 'weekly')
         .maybeSingle();
 
       if (error) {
@@ -51,11 +82,11 @@ export const WeeklyWorshipPlan = () => {
 
       if (plan) {
         setCurrentPlan(plan);
-        setStudyType((plan as any).study_type || 'bible-book');
-        if ((plan as any).study_type === 'bible-book') {
-          setSelectedBook((plan as any).book_name || 'Genesis');
-        } else if ((plan as any).study_type === 'topical') {
-          setSelectedTopic((plan as any).topic_name || 'Prayer and Faith');
+        setStudyType(plan.study_type || 'bible-book');
+        if (plan.study_type === 'bible-book') {
+          setSelectedBook(plan.book_name || 'Genesis');
+        } else if (plan.study_type === 'topical') {
+          setSelectedTopic(plan.topic_name || 'Prayer and Faith');
         }
       }
     } catch (error) {
@@ -64,18 +95,17 @@ export const WeeklyWorshipPlan = () => {
   };
 
   const createNewPlan = async () => {
-    if (!user) return;
-
     setLoading(true);
 
     try {
-      // Deactivate existing plans
+      // Deactivate existing weekly plans
       await supabase
         .from('worship_plans')
-        .update({ is_active: false } as any)
-        .eq('user_id', user.id as any);
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('plan_type', 'weekly');
 
-      // Create new plan
+      // Create new plan with proper data structure
       const planData = {
         user_id: user.id,
         study_type: studyType,
@@ -90,11 +120,14 @@ export const WeeklyWorshipPlan = () => {
 
       const { data, error } = await supabase
         .from('worship_plans')
-        .insert(planData as any)
+        .insert(planData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Detailed error creating plan:', error);
+        throw error;
+      }
 
       setCurrentPlan(data);
       
@@ -106,7 +139,7 @@ export const WeeklyWorshipPlan = () => {
       console.error('Error creating plan:', error);
       toast({
         title: "Error",
-        description: "Failed to create worship plan",
+        description: `Failed to create worship plan: ${error.message}`,
         variant: "destructive"
       });
     } finally {
@@ -115,7 +148,7 @@ export const WeeklyWorshipPlan = () => {
   };
 
   const updatePlanProgress = async (weekNumber: number) => {
-    if (!user || !currentPlan) return;
+    if (!currentPlan) return;
 
     try {
       const { error } = await supabase
@@ -123,8 +156,8 @@ export const WeeklyWorshipPlan = () => {
         .update({ 
           current_week: weekNumber,
           updated_at: new Date().toISOString()
-        } as any)
-        .eq('id', currentPlan.id as any);
+        })
+        .eq('id', currentPlan.id);
 
       if (error) throw error;
 

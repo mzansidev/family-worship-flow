@@ -29,9 +29,17 @@ export const MainDashboard = () => {
   }
 
   const renderActiveFeature = () => {
+    // Show auth page if user requests it or if trying to access protected features while not logged in
+    if (activeFeature === 'auth') {
+      return <AuthPage />;
+    }
+
+    // If user is not logged in and trying to access protected features, show auth page
+    if (!user && (activeFeature === 'daily' || activeFeature === 'weekly' || activeFeature === 'profile')) {
+      return <AuthPage />;
+    }
+
     switch (activeFeature) {
-      case 'auth':
-        return <AuthPage />;
       case 'daily':
         return <DailyWorshipPlan />;
       case 'weekly':
