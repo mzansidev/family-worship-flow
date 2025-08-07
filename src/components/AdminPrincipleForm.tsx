@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,7 +62,7 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
 
       const { error } = await supabase
         .from('principles_content')
-        .insert(insertData);
+        .insert([insertData]);
 
       if (error) throw error;
 

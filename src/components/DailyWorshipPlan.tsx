@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Music, Book, MessageCircle, Target, Users, Check } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -134,7 +135,7 @@ export const DailyWorshipPlan = () => {
 
       await supabase
         .from('daily_worship_entries')
-        .upsert(insertData, { onConflict: 'user_id,date' });
+        .upsert([insertData], { onConflict: 'user_id,date' });
     } catch (error) {
       console.error('Error in fetchTodaysPlan:', error);
     }
@@ -191,7 +192,7 @@ export const DailyWorshipPlan = () => {
 
       await supabase
         .from('daily_worship_entries')
-        .upsert(insertData, { onConflict: 'user_id,date' });
+        .upsert([insertData], { onConflict: 'user_id,date' });
     }
     
     setLoading(false);
