@@ -28,7 +28,7 @@ export const useFamilyMembers = () => {
       const { data, error } = await supabase
         .from('family_members')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id' as any, user.id)
         .order('created_at');
 
       if (error) throw error;
@@ -64,7 +64,7 @@ export const useFamilyMembers = () => {
       const { error } = await supabase
         .from('family_members')
         .update(updates as any)
-        .eq('id', id);
+        .eq('id' as any, id);
 
       if (error) throw error;
       await fetchFamilyMembers();
@@ -79,7 +79,7 @@ export const useFamilyMembers = () => {
       const { error } = await supabase
         .from('family_members')
         .delete()
-        .eq('id', id);
+        .eq('id' as any, id);
 
       if (error) throw error;
       await fetchFamilyMembers();
