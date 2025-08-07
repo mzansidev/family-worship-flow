@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,7 +59,7 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
           category_id: formData.category_id,
           read_time: formData.read_time,
           is_new: true
-        });
+        } as any);
 
       if (error) throw error;
 

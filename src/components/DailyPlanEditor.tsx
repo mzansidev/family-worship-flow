@@ -82,7 +82,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
           family_members_present: planData.familyMembers.split(',').map(m => m.trim()).filter(m => m !== ''),
           leader_id: planData.leaderId || null,
           assistant_id: planData.assistantId || null
-        }, { 
+        } as any, { 
           onConflict: 'user_id,date' 
         });
 
