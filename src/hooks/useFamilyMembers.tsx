@@ -27,7 +27,7 @@ export const useFamilyMembers = () => {
       const { data, error } = await supabase
         .from('family_members')
         .select('*')
-        .eq('user_id', user.id as any)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -60,7 +60,7 @@ export const useFamilyMembers = () => {
           user_id: user.id,
           name,
           role,
-        } as any)
+        })
         .select()
         .single();
 
@@ -87,8 +87,8 @@ export const useFamilyMembers = () => {
     try {
       const { error } = await supabase
         .from('family_members')
-        .update({ name, role } as any)
-        .eq('id', id as any);
+        .update({ name, role })
+        .eq('id', id);
 
       if (error) throw error;
 
@@ -117,7 +117,7 @@ export const useFamilyMembers = () => {
       const { error } = await supabase
         .from('family_members')
         .delete()
-        .eq('id', id as any);
+        .eq('id', id);
 
       if (error) throw error;
 

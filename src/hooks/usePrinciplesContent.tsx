@@ -53,7 +53,7 @@ export const usePrinciplesContent = () => {
     try {
       const { data, error } = await supabase
         .from('principles_content')
-        .insert(principle as any)
+        .insert(principle)
         .select()
         .single();
 
@@ -77,8 +77,8 @@ export const usePrinciplesContent = () => {
     try {
       const { data, error } = await supabase
         .from('principles_content')
-        .update(updates as any)
-        .eq('id', id as any)
+        .update(updates)
+        .eq('id', id)
         .select()
         .single();
 
@@ -107,7 +107,7 @@ export const usePrinciplesContent = () => {
       const { error } = await supabase
         .from('principles_content')
         .delete()
-        .eq('id', id as any);
+        .eq('id', id);
 
       if (error) throw error;
 

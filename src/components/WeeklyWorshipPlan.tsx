@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Book, Target, Plus, Settings } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -47,8 +46,8 @@ const WeeklyWorshipPlan = () => {
       const { data: plan, error } = await supabase
         .from('worship_plans')
         .select('*')
-        .eq('user_id', user.id as any)
-        .eq('is_active', true as any)
+        .eq('user_id', user.id)
+        .eq('is_active', true)
         .maybeSingle();
 
       if (error) {
@@ -164,13 +163,13 @@ const WeeklyWorshipPlan = () => {
       // Deactivate existing plans
       await supabase
         .from('worship_plans')
-        .update({ is_active: false } as any)
-        .eq('user_id', user.id as any);
+        .update({ is_active: false })
+        .eq('user_id', user.id);
 
       // Create new plan
       const { data, error } = await supabase
         .from('worship_plans')
-        .insert(planData as any)
+        .insert(planData)
         .select()
         .single();
 
@@ -202,8 +201,8 @@ const WeeklyWorshipPlan = () => {
     try {
       await supabase
         .from('worship_plans')
-        .update({ current_week: nextWeek } as any)
-        .eq('id', currentPlan.id as any);
+        .update({ current_week: nextWeek })
+        .eq('id', currentPlan.id);
 
       setCurrentWeek(nextWeek);
       
