@@ -3,7 +3,7 @@ import { RefreshCw, Music, Book, MessageCircle, Target, Users, Check } from 'luc
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useUserStats } from '@/hooks/useUserStats';
