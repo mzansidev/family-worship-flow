@@ -369,7 +369,7 @@ export const WeeklyWorshipPlan = () => {
     try {
       const { data, error } = await supabase
         .from('worship_plans')
-        .insert([{
+        .insert({
           user_id: user.id,
           plan_type: 'weekly',
           study_type: studyType,
@@ -377,19 +377,21 @@ export const WeeklyWorshipPlan = () => {
           topic_name: studyType === 'topic' ? selectedTopic : null,
           start_date: new Date().toISOString().split('T')[0],
           is_active: true
-        }])
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
       
-      setCurrentPlan(data);
-      await generateWeeklyEntries(data.id);
-      
-      toast({
-        title: "Success",
-        description: "New study plan created!"
-      });
+      if (data) {
+        setCurrentPlan(data);
+        await generateWeeklyEntries(data.id);
+        
+        toast({
+          title: "Success",
+          description: "New study plan created!"
+        });
+      }
     } catch (error) {
       console.error('Error creating plan:', error);
       toast({
@@ -421,7 +423,7 @@ export const WeeklyWorshipPlan = () => {
 
     const { error } = await supabase
       .from('daily_worship_entries')
-      .upsert(entries, { onConflict: 'user_id,date' });
+      .upsert(entries as any, { onConflict: 'user_id,date' });
 
     if (!error) {
       setWeeklyEntries(entries);
@@ -449,7 +451,7 @@ export const WeeklyWorshipPlan = () => {
     const { data: existingData } = await supabase
       .from('daily_worship_entries')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', user.id as any)
       .eq('date', day.date)
       .maybeSingle();
 
@@ -477,9 +479,9 @@ export const WeeklyWorshipPlan = () => {
     const { data } = await supabase
       .from('worship_plans')
       .select('*')
-      .eq('user_id', user.id)
-      .eq('plan_type', 'weekly')
-      .eq('is_active', true)
+      .eq('user_id', user.id as any)
+      .eq('plan_type', 'weekly' as any)
+      .eq('is_active', true as any)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();

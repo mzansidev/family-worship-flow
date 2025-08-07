@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Music, Book, MessageCircle, Target, Users, Check } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -223,7 +224,7 @@ export const DailyWorshipPlan = () => {
         .maybeSingle()
         .then(({ data }) => {
           if (data) {
-            setPlanSource(data.daily_plan_source as PlanSource);
+            setPlanSource((data.daily_plan_source as PlanSource) || 'random');
             setAgeRange(data.default_age_range || 'family');
           }
         });
