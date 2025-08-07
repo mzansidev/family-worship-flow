@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { MessageSquare, Save, Edit2 } from 'lucide-react';
+import { MessageSquare, Save, Edit2, LogIn } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useReflections } from '@/hooks/useReflections';
+import { useAuth } from '@/hooks/useAuth';
+import { localStorageUtils } from '@/hooks/useLocalStorage';
 
 interface ReflectionSectionProps {
   date: string;
@@ -26,6 +28,7 @@ export const ReflectionSection: React.FC<ReflectionSectionProps> = ({
   const [saving, setSaving] = useState(false);
   
   const { addReflection } = useReflections();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const handleSave = async () => {
@@ -40,11 +43,24 @@ export const ReflectionSection: React.FC<ReflectionSectionProps> = ({
 
     setSaving(true);
     try {
-      await addReflection(reflectionText, date, bibleVerse, dailyEntryId);
+      if (user) {
+        // Save to database for logged-in users
+        await addReflection(reflectionText, date, bibleVerse, dailyEntryId);
+      } else {
+        // Save locally for guest users
+        const reflection = {
+          id: `guest-${Date.now()}`,
+          reflection_text: reflectionText,
+          worship_date: date,
+          bible_verse: bibleVerse,
+          created_at: new Date().toISOString()
+        };
+        localStorageUtils.saveReflection(reflection);
+      }
       
       toast({
         title: "Success",
-        description: "Reflection saved successfully!"
+        description: user ? "Reflection saved successfully!" : "Reflection saved locally! Sign in to sync across devices."
       });
       
       setReflectionText('');
@@ -64,10 +80,24 @@ export const ReflectionSection: React.FC<ReflectionSectionProps> = ({
   return (
     <Card>
       <div className="p-6">
-        <h3 className="font-semibold text-gray-800 mb-4 flex items-center">
+        <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4 flex items-center">
           <MessageSquare className="w-5 h-5 mr-2 text-purple-600" />
           Personal Reflection
+          {!user && (
+            <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+              Guest Mode
+            </span>
+          )}
         </h3>
+        
+        {!user && (
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+            <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center">
+              <LogIn className="w-4 h-4 mr-2" />
+              You're using guest mode. Reflections are saved locally. Sign in to sync across devices.
+            </p>
+          </div>
+        )}
         
         {!isEditing ? (
           <Button

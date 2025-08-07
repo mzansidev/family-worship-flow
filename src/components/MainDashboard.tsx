@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 
-type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile';
+type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth';
 
 export const MainDashboard = () => {
   const [activeFeature, setActiveFeature] = useState<ActiveFeature>('dashboard');
@@ -28,16 +28,10 @@ export const MainDashboard = () => {
     );
   }
 
-  if (!user) {
-    return (
-      <ThemeProvider>
-        <AuthPage />
-      </ThemeProvider>
-    );
-  }
-
   const renderActiveFeature = () => {
     switch (activeFeature) {
+      case 'auth':
+        return <AuthPage />;
       case 'daily':
         return <DailyWorshipPlan />;
       case 'weekly':
@@ -57,6 +51,7 @@ export const MainDashboard = () => {
         <Header 
           activeFeature={activeFeature} 
           onNavigate={setActiveFeature}
+          isLoggedIn={!!user}
         />
         
         <main className="container mx-auto px-4 py-6 max-w-4xl">
