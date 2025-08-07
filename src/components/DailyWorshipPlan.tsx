@@ -88,35 +88,39 @@ export const DailyWorshipPlan = () => {
 
     const today = new Date().toISOString().split('T')[0];
     
-    // Check if there's already a plan for today
-    const { data: existingPlan } = await supabase
-      .from('daily_worship_entries')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('date', today)
-      .maybeSingle();
+    try {
+      // Check if there's already a plan for today
+      const { data: existingPlan, error } = await supabase
+        .from('daily_worship_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', today)
+        .maybeSingle();
 
-    if (existingPlan) {
-      setCurrentPlan({
-        openingSong: existingPlan.opening_song,
-        bibleReading: existingPlan.bible_reading,
-        discussion: existingPlan.discussion_questions,
-        application: existingPlan.application,
-        closingSong: existingPlan.closing_song,
-        theme: existingPlan.theme
-      });
-      setIsCompleted(existingPlan.is_completed || false);
-      return;
-    }
+      if (error) {
+        console.error('Error fetching plan:', error);
+        return;
+      }
 
-    // Generate random plan
-    const randomPlan = generateRandomPlan();
-    setCurrentPlan(randomPlan);
-    
-    // Save to database
-    await supabase
-      .from('daily_worship_entries')
-      .upsert([{
+      if (existingPlan) {
+        setCurrentPlan({
+          openingSong: existingPlan.opening_song,
+          bibleReading: existingPlan.bible_reading,
+          discussion: existingPlan.discussion_questions,
+          application: existingPlan.application,
+          closingSong: existingPlan.closing_song,
+          theme: existingPlan.theme
+        });
+        setIsCompleted(existingPlan.is_completed || false);
+        return;
+      }
+
+      // Generate random plan
+      const randomPlan = generateRandomPlan();
+      setCurrentPlan(randomPlan);
+      
+      // Save to database
+      const insertData = {
         user_id: user.id,
         date: today,
         opening_song: randomPlan.openingSong,
@@ -126,7 +130,14 @@ export const DailyWorshipPlan = () => {
         closing_song: randomPlan.closingSong,
         theme: randomPlan.theme,
         is_completed: false
-      }], { onConflict: 'user_id,date' });
+      };
+
+      await supabase
+        .from('daily_worship_entries')
+        .upsert(insertData, { onConflict: 'user_id,date' });
+    } catch (error) {
+      console.error('Error in fetchTodaysPlan:', error);
+    }
   };
 
   const handleMarkCompleted = async () => {
@@ -135,11 +146,13 @@ export const DailyWorshipPlan = () => {
     const today = new Date().toISOString().split('T')[0];
     
     try {
-      await supabase
+      const { error } = await supabase
         .from('daily_worship_entries')
         .update({ is_completed: true })
         .eq('user_id', user.id)
         .eq('date', today);
+
+      if (error) throw error;
 
       setIsCompleted(true);
       await updateStats(true);
@@ -165,18 +178,20 @@ export const DailyWorshipPlan = () => {
 
     if (user) {
       const today = new Date().toISOString().split('T')[0];
+      const insertData = {
+        user_id: user.id,
+        date: today,
+        opening_song: newPlan.openingSong,
+        bible_reading: newPlan.bibleReading,
+        discussion_questions: newPlan.discussion,
+        application: newPlan.application,
+        closing_song: newPlan.closingSong,
+        theme: newPlan.theme
+      };
+
       await supabase
         .from('daily_worship_entries')
-        .upsert([{
-          user_id: user.id,
-          date: today,
-          opening_song: newPlan.openingSong,
-          bible_reading: newPlan.bibleReading,
-          discussion_questions: newPlan.discussion,
-          application: newPlan.application,
-          closing_song: newPlan.closingSong,
-          theme: newPlan.theme
-        }], { onConflict: 'user_id,date' });
+        .upsert(insertData, { onConflict: 'user_id,date' });
     }
     
     setLoading(false);

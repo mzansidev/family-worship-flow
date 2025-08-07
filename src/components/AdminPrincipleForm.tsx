@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,12 +51,17 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
 
     setLoading(true);
     try {
+      const insertData = {
+        title: formData.title,
+        content: formData.content,
+        category_id: formData.category_id,
+        read_time: formData.read_time,
+        is_new: true
+      };
+
       const { error } = await supabase
         .from('principles_content')
-        .insert([{
-          ...formData,
-          is_new: true
-        }]);
+        .insert(insertData);
 
       if (error) throw error;
 
@@ -75,6 +79,7 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
       setShowForm(false);
       onSuccess();
     } catch (error) {
+      console.error('Error creating principle:', error);
       toast({
         title: "Error",
         description: "Failed to create principle article",

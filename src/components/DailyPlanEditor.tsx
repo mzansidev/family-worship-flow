@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Music, Book, MessageCircle, Target, Plus, X, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -70,7 +69,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
     try {
       const dataToSave = {
         user_id: user.id,
-        date,
+        date: date,
         opening_song: planData.openingSong,
         bible_reading: planData.bibleReading,
         theme: planData.theme,
@@ -85,7 +84,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
 
       const { error } = await supabase
         .from('daily_worship_entries')
-        .upsert([dataToSave], { onConflict: 'user_id,date' });
+        .upsert(dataToSave, { onConflict: 'user_id,date' });
 
       if (error) throw error;
 
