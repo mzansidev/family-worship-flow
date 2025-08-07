@@ -3,7 +3,7 @@ import { RefreshCw, Music, Book, MessageCircle, Target, Users, Check } from 'luc
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useUserStats } from '@/hooks/useUserStats';
@@ -19,6 +19,35 @@ export const DailyWorshipPlan = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { updateStats } = useUserStats();
+
+  const generateDiscussionQuestions = (theme: string, age: string) => {
+    const baseQuestions = [
+      `What does today's passage teach us about ${theme.toLowerCase()}?`,
+      'How can we apply this lesson in our daily lives?',
+      'What are some ways we can remember this truth throughout the week?'
+    ];
+
+    const ageSpecific = {
+      child: [
+        'Can you draw a picture of what this story means?',
+        'What would you tell a friend about God from this story?'
+      ],
+      teen: [
+        'How does this apply to challenges you face at school?',
+        'What questions does this raise for you about faith?'
+      ],
+      adult: [
+        'How has God demonstrated this truth in your life experience?',
+        'What practical steps can we take to live this out?'
+      ],
+      family: [
+        'How can our family show others this truth about God?',
+        'What is one thing each of us can do this week to practice this?'
+      ]
+    };
+
+    return [...baseQuestions, ...ageSpecific[age as keyof typeof ageSpecific]];
+  };
 
   const generateRandomPlan = () => {
     const themes = [
@@ -54,35 +83,6 @@ export const DailyWorshipPlan = () => {
     };
   };
 
-  const generateDiscussionQuestions = (theme: string, age: string) => {
-    const baseQuestions = [
-      `What does today's passage teach us about ${theme.toLowerCase()}?`,
-      'How can we apply this lesson in our daily lives?',
-      'What are some ways we can remember this truth throughout the week?'
-    ];
-
-    const ageSpecific = {
-      child: [
-        'Can you draw a picture of what this story means?',
-        'What would you tell a friend about God from this story?'
-      ],
-      teen: [
-        'How does this apply to challenges you face at school?',
-        'What questions does this raise for you about faith?'
-      ],
-      adult: [
-        'How has God demonstrated this truth in your life experience?',
-        'What practical steps can we take to live this out?'
-      ],
-      family: [
-        'How can our family show others this truth about God?',
-        'What is one thing each of us can do this week to practice this?'
-      ]
-    };
-
-    return [...baseQuestions, ...ageSpecific[age as keyof typeof ageSpecific]];
-  };
-
   const fetchTodaysPlan = async () => {
     if (!user) return;
 
@@ -102,7 +102,7 @@ export const DailyWorshipPlan = () => {
         return;
       }
 
-      if (existingPlan && existingPlan.opening_song) {
+      if (existingPlan && typeof existingPlan === 'object' && 'opening_song' in existingPlan) {
         setCurrentPlan({
           openingSong: (existingPlan as any).opening_song || '',
           bibleReading: (existingPlan as any).bible_reading || '',
@@ -222,7 +222,7 @@ export const DailyWorshipPlan = () => {
         .eq('user_id', user.id as any)
         .maybeSingle()
         .then(({ data, error }) => {
-          if (!error && data && (data as any).daily_plan_source) {
+          if (!error && data && typeof data === 'object' && 'daily_plan_source' in data) {
             setPlanSource(((data as any).daily_plan_source as PlanSource) || 'random');
             setAgeRange((data as any).default_age_range || 'family');
           }

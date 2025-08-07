@@ -42,7 +42,12 @@ export const useFamilyMembers = () => {
           member && typeof member === 'object' && 
           'id' in member && 'name' in member && 'role' in member && 'created_at' in member
         );
-        setMembers(validMembers as unknown as FamilyMember[]);
+        setMembers(validMembers.map(member => ({
+          id: member.id,
+          name: member.name,
+          role: member.role,
+          created_at: member.created_at
+        })) as unknown as FamilyMember[]);
       } else {
         setMembers([]);
       }
@@ -71,7 +76,12 @@ export const useFamilyMembers = () => {
       if (error) throw error;
 
       if (data && typeof data === 'object' && 'id' in data) {
-        const newMember = data as unknown as FamilyMember;
+        const newMember = {
+          id: (data as any).id,
+          name: (data as any).name,
+          role: (data as any).role,
+          created_at: (data as any).created_at
+        } as FamilyMember;
         setMembers(prev => [...prev, newMember]);
         return newMember;
       }

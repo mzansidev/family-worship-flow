@@ -38,7 +38,16 @@ export const usePrinciplesContent = () => {
           principle && typeof principle === 'object' && 
           'id' in principle && 'title' in principle && 'content' in principle
         );
-        setPrinciples(validPrinciples as unknown as PrincipleContent[]);
+        setPrinciples(validPrinciples.map(principle => ({
+          id: principle.id,
+          title: principle.title,
+          content: principle.content,
+          category_id: principle.category_id,
+          read_time: principle.read_time,
+          is_new: principle.is_new,
+          created_at: principle.created_at,
+          updated_at: principle.updated_at
+        })) as unknown as PrincipleContent[]);
       } else {
         setPrinciples([]);
       }
