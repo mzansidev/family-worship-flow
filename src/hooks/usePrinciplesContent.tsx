@@ -33,12 +33,12 @@ export const usePrinciplesContent = () => {
       }
 
       if (data && Array.isArray(data)) {
-        // Type guard to ensure we have valid data
-        const validPrinciples = data.filter(principle => 
+        // Type guard and filter for valid principles
+        const validPrinciples = data.filter((principle): principle is any => 
           principle && typeof principle === 'object' && 
           'id' in principle && 'title' in principle && 'content' in principle
         );
-        setPrinciples(validPrinciples as PrincipleContent[]);
+        setPrinciples(validPrinciples as unknown as PrincipleContent[]);
       } else {
         setPrinciples([]);
       }
@@ -61,7 +61,7 @@ export const usePrinciplesContent = () => {
       if (error) throw error;
 
       if (data && typeof data === 'object') {
-        const newPrinciple = data as PrincipleContent;
+        const newPrinciple = data as unknown as PrincipleContent;
         setPrinciples(prev => [newPrinciple, ...prev]);
         return newPrinciple;
       }
@@ -84,7 +84,7 @@ export const usePrinciplesContent = () => {
       if (error) throw error;
 
       if (data && typeof data === 'object') {
-        const updatedPrinciple = data as PrincipleContent;
+        const updatedPrinciple = data as unknown as PrincipleContent;
         setPrinciples(prev =>
           prev.map(principle =>
             principle.id === id ? updatedPrinciple : principle

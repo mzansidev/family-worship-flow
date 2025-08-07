@@ -16,7 +16,7 @@ export const FamilyMembersSection: React.FC = () => {
   const [editingRole, setEditingRole] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   
-  const { familyMembers, loading, addFamilyMember, updateFamilyMember, deleteFamilyMember } = useFamilyMembers();
+  const { members, loading, addMember, updateMember, deleteMember } = useFamilyMembers();
   const { toast } = useToast();
 
   const handleAddMember = async () => {
@@ -30,7 +30,7 @@ export const FamilyMembersSection: React.FC = () => {
     }
 
     try {
-      await addFamilyMember(newMemberName, newMemberRole);
+      await addMember(newMemberName, newMemberRole as any);
       setNewMemberName('');
       setNewMemberRole('participant');
       setShowAddForm(false);
@@ -64,10 +64,7 @@ export const FamilyMembersSection: React.FC = () => {
     }
 
     try {
-      await updateFamilyMember(editingId!, {
-        name: editingName,
-        role: editingRole
-      });
+      await updateMember(editingId!, editingName, editingRole as any);
       setEditingId(null);
       toast({
         title: "Success",
@@ -85,7 +82,7 @@ export const FamilyMembersSection: React.FC = () => {
   const handleDeleteMember = async (id: string, name: string) => {
     if (window.confirm(`Are you sure you want to remove ${name} from your family list?`)) {
       try {
-        await deleteFamilyMember(id);
+        await deleteMember(id);
         toast({
           title: "Success",
           description: "Family member removed successfully!"
@@ -134,8 +131,9 @@ export const FamilyMembersSection: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="participant">Participant</SelectItem>
-                  <SelectItem value="leader">Leader</SelectItem>
-                  <SelectItem value="assistant">Assistant</SelectItem>
+                  <SelectItem value="parent">Parent</SelectItem>
+                  <SelectItem value="child">Child</SelectItem>
+                  <SelectItem value="teen">Teen</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -160,7 +158,7 @@ export const FamilyMembersSection: React.FC = () => {
         )}
 
         <div className="space-y-2">
-          {familyMembers.map((member) => (
+          {members.map((member) => (
             <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               {editingId === member.id ? (
                 <div className="flex items-center gap-3 flex-1">
@@ -175,8 +173,9 @@ export const FamilyMembersSection: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="participant">Participant</SelectItem>
-                      <SelectItem value="leader">Leader</SelectItem>
-                      <SelectItem value="assistant">Assistant</SelectItem>
+                      <SelectItem value="parent">Parent</SelectItem>
+                      <SelectItem value="child">Child</SelectItem>
+                      <SelectItem value="teen">Teen</SelectItem>
                     </SelectContent>
                   </Select>
                   <div className="flex gap-1">
@@ -222,7 +221,7 @@ export const FamilyMembersSection: React.FC = () => {
             </div>
           ))}
           
-          {familyMembers.length === 0 && (
+          {members.length === 0 && (
             <p className="text-gray-500 text-center py-4">No family members added yet</p>
           )}
         </div>

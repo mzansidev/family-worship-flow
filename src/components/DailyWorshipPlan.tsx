@@ -103,7 +103,7 @@ export const DailyWorshipPlan = () => {
         return;
       }
 
-      if (existingPlan && existingPlan !== null && typeof existingPlan === 'object' && 'opening_song' in existingPlan) {
+      if (existingPlan && existingPlan.opening_song) {
         setCurrentPlan({
           openingSong: existingPlan.opening_song || '',
           bibleReading: existingPlan.bible_reading || '',
@@ -112,7 +112,7 @@ export const DailyWorshipPlan = () => {
           closingSong: existingPlan.closing_song || '',
           theme: existingPlan.theme || ''
         });
-        setIsCompleted((existingPlan as any).is_completed || false);
+        setIsCompleted(existingPlan.is_completed || false);
         return;
       }
 
@@ -223,9 +223,9 @@ export const DailyWorshipPlan = () => {
         .eq('user_id', user.id as any)
         .maybeSingle()
         .then(({ data, error }) => {
-          if (!error && data && typeof data === 'object' && 'daily_plan_source' in data) {
-            setPlanSource(((data as any).daily_plan_source as PlanSource) || 'random');
-            setAgeRange((data as any).default_age_range || 'family');
+          if (!error && data && data.daily_plan_source) {
+            setPlanSource((data.daily_plan_source as PlanSource) || 'random');
+            setAgeRange(data.default_age_range || 'family');
           }
         });
     }

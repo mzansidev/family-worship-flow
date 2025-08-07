@@ -37,12 +37,12 @@ export const useFamilyMembers = () => {
       }
 
       if (data && Array.isArray(data)) {
-        // Type guard to ensure we have valid data
-        const validMembers = data.filter(member => 
+        // Type guard and filter for valid members
+        const validMembers = data.filter((member): member is any => 
           member && typeof member === 'object' && 
           'id' in member && 'name' in member && 'role' in member && 'created_at' in member
         );
-        setMembers(validMembers as FamilyMember[]);
+        setMembers(validMembers as unknown as FamilyMember[]);
       } else {
         setMembers([]);
       }
@@ -71,7 +71,7 @@ export const useFamilyMembers = () => {
       if (error) throw error;
 
       if (data && typeof data === 'object' && 'id' in data) {
-        const newMember = data as FamilyMember;
+        const newMember = data as unknown as FamilyMember;
         setMembers(prev => [...prev, newMember]);
         return newMember;
       }
