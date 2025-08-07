@@ -28,11 +28,11 @@ export const useFamilyMembers = () => {
       const { data, error } = await supabase
         .from('family_members')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as any)
         .order('created_at');
 
       if (error) throw error;
-      setFamilyMembers(data || []);
+      setFamilyMembers((data as any) || []);
     } catch (error) {
       console.error('Error fetching family members:', error);
     } finally {
@@ -46,7 +46,7 @@ export const useFamilyMembers = () => {
     try {
       const { data, error } = await supabase
         .from('family_members')
-        .insert([{ user_id: user.id, name, role }])
+        .insert({ user_id: user.id, name, role } as any)
         .select()
         .single();
 
@@ -63,7 +63,7 @@ export const useFamilyMembers = () => {
     try {
       const { error } = await supabase
         .from('family_members')
-        .update(updates)
+        .update(updates as any)
         .eq('id', id);
 
       if (error) throw error;

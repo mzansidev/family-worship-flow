@@ -222,8 +222,8 @@ export const DailyWorshipPlan = () => {
         .select('*')
         .eq('user_id', user.id as any)
         .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
+        .then(({ data, error }) => {
+          if (!error && data) {
             setPlanSource((data.daily_plan_source as PlanSource) || 'random');
             setAgeRange(data.default_age_range || 'family');
           }
