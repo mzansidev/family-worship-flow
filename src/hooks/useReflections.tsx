@@ -5,15 +5,13 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface Reflection {
   id: string;
+  user_id: string;
   reflection_text: string;
   bible_verse?: string;
   worship_date: string;
-  created_at: string;
   daily_entry_id?: string;
-  daily_worship_entries?: {
-    bible_reading?: string;
-    theme?: string;
-  };
+  created_at: string;
+  updated_at: string;
 }
 
 export const useReflections = () => {
@@ -33,18 +31,12 @@ export const useReflections = () => {
     try {
       const { data, error } = await supabase
         .from('user_reflections')
-        .select(`
-          *,
-          daily_worship_entries (
-            bible_reading,
-            theme
-          )
-        `)
+        .select('*')
         .eq('user_id', user.id)
         .order('worship_date', { ascending: false });
 
       if (error) throw error;
-      setReflections(data || []);
+      setReflections((data as Reflection[]) || []);
     } catch (error) {
       console.error('Error fetching reflections:', error);
     } finally {
@@ -52,19 +44,19 @@ export const useReflections = () => {
     }
   };
 
-  const addReflection = async (reflectionText: string, worshipDate: string, bibleVerse?: string, dailyEntryId?: string) => {
+  const addReflection = async (reflectionText: string, bibleVerse?: string, worshipDate?: string, dailyEntryId?: string) => {
     if (!user) return;
 
     try {
       const { data, error } = await supabase
         .from('user_reflections')
-        .insert([{
+        .insert({
           user_id: user.id,
           reflection_text: reflectionText,
-          worship_date: worshipDate,
           bible_verse: bibleVerse,
+          worship_date: worshipDate || new Date().toISOString().split('T')[0],
           daily_entry_id: dailyEntryId
-        }])
+        })
         .select()
         .single();
 

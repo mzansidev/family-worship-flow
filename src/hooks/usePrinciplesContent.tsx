@@ -28,7 +28,7 @@ export const usePrinciplesContent = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPrinciplesContent((data as unknown as PrincipleContent[]) || []);
+      setPrinciplesContent((data as PrincipleContent[]) || []);
     } catch (error) {
       console.error('Error fetching principles:', error);
     } finally {
@@ -41,7 +41,7 @@ export const usePrinciplesContent = () => {
       const { error } = await supabase
         .from('principles_content')
         .delete()
-        .eq('id' as any, id);
+        .eq('id', id);
 
       if (error) throw error;
       await fetchPrinciplesContent();
@@ -55,8 +55,8 @@ export const usePrinciplesContent = () => {
     try {
       const { error } = await supabase
         .from('principles_content')
-        .update(updates as any)
-        .eq('id' as any, id);
+        .update(updates)
+        .eq('id', id);
 
       if (error) throw error;
       await fetchPrinciplesContent();
