@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Book, RefreshCw, Target, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -136,9 +135,9 @@ export const WeeklyWorshipPlan = () => {
       const { data: plan, error } = await supabase
         .from('worship_plans')
         .select('*')
-        .eq('user_id', user.id as any)
-        .eq('plan_type', 'weekly' as any)
-        .eq('is_active', true as any)
+        .eq('user_id', user.id)
+        .eq('plan_type', 'weekly')
+        .eq('is_active', true)
         .maybeSingle();
 
       if (error) {
@@ -171,8 +170,8 @@ export const WeeklyWorshipPlan = () => {
       // Deactivate existing plans
       await supabase
         .from('worship_plans')
-        .update({ is_active: false } as any)
-        .eq('user_id', user.id as any);
+        .update({ is_active: false })
+        .eq('user_id', user.id);
 
       // Create new plan
       const { data: newPlan, error } = await supabase
@@ -185,7 +184,7 @@ export const WeeklyWorshipPlan = () => {
           topic_name: studyType === 'topic' ? selectedTopic : null,
           current_week: 1,
           is_active: true
-        } as any)
+        })
         .select()
         .single();
 
@@ -226,8 +225,8 @@ export const WeeklyWorshipPlan = () => {
     // Update in database
     await supabase
       .from('worship_plans')
-      .update({ current_week: newWeek } as any)
-      .eq('id', activePlan.id as any);
+      .update({ current_week: newWeek })
+      .eq('id', activePlan.id);
 
     // Generate new plans if needed
     const plans = activePlan.study_type === 'book'
