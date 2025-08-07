@@ -41,7 +41,7 @@ export const usePrinciplesContent = () => {
       const { error } = await supabase
         .from('principles_content')
         .delete()
-        .eq('id', id);
+        .eq('id', id as any);
 
       if (error) throw error;
       await fetchPrinciplesContent();
@@ -55,8 +55,8 @@ export const usePrinciplesContent = () => {
     try {
       const { error } = await supabase
         .from('principles_content')
-        .update(updates)
-        .eq('id', id);
+        .update(updates as any)
+        .eq('id', id as any);
 
       if (error) throw error;
       await fetchPrinciplesContent();

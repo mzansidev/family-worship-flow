@@ -1,165 +1,181 @@
+
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Calendar, ChevronRight, Plus } from 'lucide-react';
+import { Calendar, Book, RefreshCw, Target, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { DailyPlanEditor } from './DailyPlanEditor';
+
+interface WeeklyPlan {
+  id?: string;
+  week: number;
+  date: string;
+  theme: string;
+  bibleReading: string;
+  keyVerse: string;
+  discussion: string[];
+  activity: string;
+  prayer: string;
+}
 
 export const WeeklyWorshipPlan = () => {
-  const [studyType, setStudyType] = useState<'book' | 'topic'>('book');
-  const [selectedBook, setSelectedBook] = useState('matthew');
-  const [selectedTopic, setSelectedTopic] = useState('god-nature');
-  const [currentPlan, setCurrentPlan] = useState<any>(null);
-  const [weeklyEntries, setWeeklyEntries] = useState<any[]>([]);
+  const [studyType, setStudyType] = useState('book');
+  const [selectedBook, setSelectedBook] = useState('Genesis');
+  const [selectedTopic, setSelectedTopic] = useState('Faith');
+  const [currentWeek, setCurrentWeek] = useState(1);
+  const [weeklyPlans, setWeeklyPlans] = useState<WeeklyPlan[]>([]);
+  const [activePlan, setActivePlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [editingDay, setEditingDay] = useState<{date: string, data?: any} | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const bibleBooks = [
-    { value: 'matthew', name: 'Matthew', chapters: 28 },
-    { value: 'mark', name: 'Mark', chapters: 16 },
-    { value: 'luke', name: 'Luke', chapters: 24 },
-    { value: 'john', name: 'John', chapters: 21 },
-    { value: 'psalms', name: 'Psalms', chapters: 150 },
-    { value: 'proverbs', name: 'Proverbs', chapters: 31 },
-    { value: 'genesis', name: 'Genesis', chapters: 50 },
-    { value: 'romans', name: 'Romans', chapters: 16 },
+    'Genesis', 'Exodus', 'Psalms', 'Proverbs', 'Matthew', 'Mark', 
+    'Luke', 'John', 'Romans', 'Ephesians', 'Philippians', 'Colossians'
   ];
 
-  const spiritualTopics = [
-    { value: 'god-nature', name: 'The Nature of God', weeks: 4 },
-    { value: 'salvation', name: 'Salvation & Grace', weeks: 3 },
-    { value: 'scripture', name: 'Holy Scripture', weeks: 2 },
-    { value: 'trinity', name: 'The Trinity', weeks: 3 },
-    { value: 'creation', name: 'Creation', weeks: 2 },
-    { value: 'human-nature', name: 'Human Nature', weeks: 2 },
-    { value: 'great-controversy', name: 'The Great Controversy', weeks: 4 },
-    { value: 'christian-living', name: 'Christian Living', weeks: 3 },
-    { value: 'church', name: 'The Church', weeks: 2 },
-    { value: 'prophecy', name: 'Prophecy & End Times', weeks: 4 },
-    { value: 'sabbath', name: 'The Sabbath', weeks: 2 },
-    { value: 'stewardship', name: 'Stewardship', weeks: 2 },
+  const topics = [
+    'Faith', 'Prayer', 'Love', 'Forgiveness', 'Gratitude', 'Hope',
+    'Peace', 'Joy', 'Courage', 'Wisdom', 'Trust', 'Service'
   ];
 
-  const getTopicPassages = (topic: string, weekInTopic: number, dayInWeek: number) => {
-    const topicPassages: { [key: string]: { [key: number]: string[] } } = {
-      'creation': {
-        1: [
-          'Genesis 1:1-5', 'Genesis 1:6-13', 'Genesis 1:14-19', 'Genesis 1:20-25',
-          'Genesis 1:26-31', 'Genesis 2:1-3', 'Psalm 104:1-9'
-        ],
-        2: [
-          'Psalm 104:10-18', 'Psalm 104:19-23', 'Psalm 104:24-30', 'Psalm 104:31-35',
-          'Romans 1:20', 'Colossians 1:16-17', 'Hebrews 11:3'
-        ]
-      },
-      'god-nature': {
-        1: [
-          'Exodus 3:14', 'Psalm 90:1-2', 'Isaiah 55:8-9', 'John 4:24',
-          '1 John 4:8', 'James 1:17', 'Malachi 3:6'
-        ],
-        2: [
-          'Psalm 139:1-6', 'Psalm 139:7-12', 'Psalm 139:13-18', 'Isaiah 46:9-10',
-          'Jeremiah 23:23-24', '1 Kings 8:27', 'Job 11:7-9'
-        ],
-        3: [
-          'Isaiah 6:1-3', 'Revelation 4:8', 'Exodus 15:11', 'Psalm 99:3',
-          'Isaiah 57:15', 'Habakkuk 1:13', 'Leviticus 19:2'
-        ],
-        4: [
-          'Psalm 103:8', 'Exodus 34:6-7', 'Lamentations 3:22-23', 'Romans 2:4',
-          'Ephesians 2:4-5', 'Titus 3:4-5', '1 John 3:1'
-        ]
-      }
-    };
-    
-    const weekPassages = topicPassages[topic]?.[weekInTopic] || topicPassages['god-nature'][1];
-    return weekPassages[dayInWeek - 1] || weekPassages[0];
-  };
-
-  const getTopicDiscussionQuestions = (topic: string, weekInTopic: number, dayInWeek: number) => {
-    const topicQuestions: { [key: string]: { [key: number]: string[][] } } = {
-      'creation': {
-        1: [
-          ['What does Genesis 1:1 teach us about God as Creator?', 'How does understanding God as Creator affect how we view ourselves?', 'What evidence of God\'s creative power do we see in nature today?']
-        ]
-      },
-      'god-nature': {
-        1: [
-          ['What does the name "I AM" reveal about God?', 'How does God\'s self-existence comfort us?', 'What makes God different from all creation?']
-        ]
-      }
+  const generateBookStudyPlan = (book: string, startWeek: number = 1): WeeklyPlan[] => {
+    const bookPlans: { [key: string]: WeeklyPlan[] } = {
+      Genesis: [
+        {
+          week: 1,
+          date: new Date().toISOString().split('T')[0],
+          theme: 'In the Beginning',
+          bibleReading: 'Genesis 1:1-31',
+          keyVerse: 'In the beginning God created the heavens and the earth. - Genesis 1:1',
+          discussion: [
+            'What does it mean that God created everything?',
+            'How can we take care of God\'s creation?',
+            'What is your favorite part of God\'s creation?'
+          ],
+          activity: 'Go outside and observe God\'s creation. Draw or take photos of things that show God\'s creativity.',
+          prayer: 'Thank God for creating such a beautiful world for us to enjoy.'
+        }
+      ],
+      Psalms: [
+        {
+          week: 1,
+          date: new Date().toISOString().split('T')[0],
+          theme: 'The Lord is My Shepherd',
+          bibleReading: 'Psalm 23:1-6',
+          keyVerse: 'The Lord is my shepherd, I lack nothing. - Psalm 23:1',
+          discussion: [
+            'How is God like a shepherd to us?',
+            'What does it mean that we "lack nothing" with God?',
+            'How can we trust God to guide us?'
+          ],
+          activity: 'Create a visual representation of Psalm 23 using art supplies.',
+          prayer: 'Ask God to be your shepherd and guide you in all you do.'
+        }
+      ]
     };
 
-    const weekQuestions = topicQuestions[topic]?.[weekInTopic] || topicQuestions['god-nature'][1];
-    return weekQuestions[dayInWeek - 1] || weekQuestions[0];
+    return bookPlans[book] || [{
+      week: startWeek,
+      date: new Date().toISOString().split('T')[0],
+      theme: `Studying ${book}`,
+      bibleReading: `${book} 1:1-10`,
+      keyVerse: `Key verse from ${book}`,
+      discussion: [
+        `What can we learn from ${book}?`,
+        'How does this apply to our lives?',
+        'What questions do we have?'
+      ],
+      activity: `Study and discuss ${book} together as a family.`,
+      prayer: `Pray for understanding as we study ${book}.`
+    }];
   };
 
-  const getBookStudyQuestions = (bookName: string, chapter: number) => {
-    return [
-      `What is the main theme or message of ${bookName} chapter ${chapter}?`,
-      'What does this passage teach us about God\'s character?',
-      'How can we apply the lessons from this passage to our daily lives?'
-    ];
+  const generateTopicStudyPlan = (topic: string, startWeek: number = 1): WeeklyPlan[] => {
+    const topicPlans: { [key: string]: WeeklyPlan[] } = {
+      Faith: [
+        {
+          week: 1,
+          date: new Date().toISOString().split('T')[0],
+          theme: 'What is Faith?',
+          bibleReading: 'Hebrews 11:1-6',
+          keyVerse: 'Faith is confidence in what we hope for and assurance about what we do not see. - Hebrews 11:1',
+          discussion: [
+            'How would you explain faith to a friend?',
+            'What are some things we believe in that we cannot see?',
+            'How can our faith grow stronger?'
+          ],
+          activity: 'Share stories of times when faith helped you or someone you know.',
+          prayer: 'Ask God to help your faith grow stronger each day.'
+        }
+      ]
+    };
+
+    return topicPlans[topic] || [{
+      week: startWeek,
+      date: new Date().toISOString().split('T')[0],
+      theme: `Understanding ${topic}`,
+      bibleReading: 'Psalm 119:105',
+      keyVerse: 'Your word is a lamp for my feet, a light on my path. - Psalm 119:105',
+      discussion: [
+        `What does the Bible teach us about ${topic}?`,
+        `How can we practice ${topic} in our daily lives?`,
+        `Why is ${topic} important for Christians?`
+      ],
+      activity: `Find examples of ${topic} in Bible stories and discuss them.`,
+      prayer: `Pray that God would help us understand and practice ${topic}.`
+    }];
   };
 
-  const generateCurrentWeekPlan = () => {
-    const today = new Date();
-    const currentDay = today.getDay();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - currentDay);
-
-    const weekPlan = [];
-    for (let i = 0; i < 14; i++) {
-      const date = new Date(startOfWeek);
-      date.setDate(startOfWeek.getDate() + i);
-      
-      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-      const isToday = date.toDateString() === today.toDateString();
-      const isPast = date < today;
-      
-      let passage, focus, discussionQuestions;
-      if (studyType === 'book') {
-        const bookData = bibleBooks.find(b => b.value === selectedBook);
-        const chapter = Math.floor(i / 7) + 1;
-        const section = (i % 7) + 1;
-        passage = `${bookData?.name} ${chapter}:${section}-${section + 5}`;
-        focus = `${bookData?.name} Study - Chapter ${chapter}`;
-        discussionQuestions = getBookStudyQuestions(bookData?.name || 'Bible', chapter);
-      } else {
-        const topicData = spiritualTopics.find(t => t.value === selectedTopic);
-        const weekInTopic = Math.floor(i / 7) + 1;
-        const dayInWeek = (i % 7) + 1;
-        passage = getTopicPassages(selectedTopic, weekInTopic, dayInWeek);
-        focus = `${topicData?.name} - Week ${weekInTopic}, Day ${dayInWeek}`;
-        discussionQuestions = getTopicDiscussionQuestions(selectedTopic, weekInTopic, dayInWeek);
-      }
-
-      weekPlan.push({
-        date: date.toISOString().split('T')[0],
-        day: dayName,
-        passage,
-        focus,
-        discussionQuestions,
-        isToday,
-        isPast,
-        isSabbath: date.getDay() === 6
-      });
-    }
-    
-    return weekPlan;
-  };
-
-  const createNewStudyPlan = async () => {
+  const fetchActivePlan = async () => {
     if (!user) return;
-    
-    setLoading(true);
+
     try {
-      const { data, error } = await supabase
+      const { data: plan, error } = await supabase
+        .from('worship_plans')
+        .select('*')
+        .eq('user_id', user.id as any)
+        .eq('plan_type', 'weekly' as any)
+        .eq('is_active', true as any)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching active plan:', error);
+        return;
+      }
+
+      if (plan) {
+        setActivePlan(plan);
+        if (plan.study_type === 'book') {
+          setStudyType('book');
+          setSelectedBook(plan.book_name || 'Genesis');
+        } else {
+          setStudyType('topic');
+          setSelectedTopic(plan.topic_name || 'Faith');
+        }
+        setCurrentWeek(plan.current_week || 1);
+      }
+    } catch (error) {
+      console.error('Error in fetchActivePlan:', error);
+    }
+  };
+
+  const createNewPlan = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    
+    try {
+      // Deactivate existing plans
+      await supabase
+        .from('worship_plans')
+        .update({ is_active: false } as any)
+        .eq('user_id', user.id as any);
+
+      // Create new plan
+      const { data: newPlan, error } = await supabase
         .from('worship_plans')
         .insert({
           user_id: user.id,
@@ -167,28 +183,33 @@ export const WeeklyWorshipPlan = () => {
           study_type: studyType,
           book_name: studyType === 'book' ? selectedBook : null,
           topic_name: studyType === 'topic' ? selectedTopic : null,
-          start_date: new Date().toISOString().split('T')[0],
+          current_week: 1,
           is_active: true
-        })
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
+
+      setActivePlan(newPlan);
+      setCurrentWeek(1);
       
-      if (data) {
-        setCurrentPlan(data);
-        await generateWeeklyEntries(data.id);
-        
-        toast({
-          title: "Success",
-          description: "New study plan created!"
-        });
-      }
+      // Generate plans
+      const plans = studyType === 'book' 
+        ? generateBookStudyPlan(selectedBook)
+        : generateTopicStudyPlan(selectedTopic);
+      
+      setWeeklyPlans(plans);
+
+      toast({
+        title: "New plan created!",
+        description: `Started ${studyType} study: ${studyType === 'book' ? selectedBook : selectedTopic}`
+      });
     } catch (error) {
       console.error('Error creating plan:', error);
       toast({
         title: "Error",
-        description: "Failed to create study plan",
+        description: "Failed to create new plan",
         variant: "destructive"
       });
     } finally {
@@ -196,246 +217,235 @@ export const WeeklyWorshipPlan = () => {
     }
   };
 
-  const generateWeeklyEntries = async (planId: string) => {
-    if (!user) return;
+  const navigateWeek = async (direction: 'prev' | 'next') => {
+    if (!activePlan) return;
 
-    const weekPlan = generateCurrentWeekPlan();
-    const entries = weekPlan.map(day => ({
-      user_id: user.id,
-      worship_plan_id: planId,
-      date: day.date,
-      bible_reading: day.passage,
-      theme: day.focus,
-      opening_song: 'Be Thou My Vision (SDAH #547)',
-      closing_song: 'How Great Thou Art (SDAH #86)',
-      discussion_questions: day.discussionQuestions,
-      application: generateApplication(day.focus),
-      is_completed: false
-    }));
+    const newWeek = direction === 'next' ? currentWeek + 1 : Math.max(1, currentWeek - 1);
+    setCurrentWeek(newWeek);
 
-    const { error } = await supabase
-      .from('daily_worship_entries')
-      .upsert(entries, { onConflict: 'user_id,date' });
+    // Update in database
+    await supabase
+      .from('worship_plans')
+      .update({ current_week: newWeek } as any)
+      .eq('id', activePlan.id as any);
 
-    if (!error) {
-      setWeeklyEntries(entries);
-    }
-  };
-
-  const generateDiscussionQuestions = (theme: string) => {
-    return [
-      `What does today's passage teach us about ${theme.toLowerCase()}?`,
-      'How can we apply this lesson in our daily lives?',
-      'What questions do you have about this topic?',
-      'How does this connect to other Bible stories you know?',
-      'What is one thing you want to remember from today?'
-    ];
-  };
-
-  const generateApplication = (theme: string) => {
-    return `This week, look for ways to apply the lessons from ${theme.toLowerCase()}. Share your observations during your next family worship time.`;
-  };
-
-  const handleDayClick = async (day: any) => {
-    if (!user) return;
-
-    // Fetch existing data for this day
-    const { data: existingData, error } = await supabase
-      .from('daily_worship_entries')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('date', day.date)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching existing data:', error);
-      return;
-    }
-
-    setEditingDay({
-      date: day.date,
-      data: existingData || {
-        bible_reading: day.passage,
-        theme: day.focus,
-        opening_song: 'Be Thou My Vision (SDAH #547)',
-        closing_song: 'How Great Thou Art (SDAH #86)',
-        discussion_questions: day.discussionQuestions
-      }
-    });
+    // Generate new plans if needed
+    const plans = activePlan.study_type === 'book'
+      ? generateBookStudyPlan(activePlan.book_name, newWeek)
+      : generateTopicStudyPlan(activePlan.topic_name, newWeek);
+    
+    setWeeklyPlans(plans);
   };
 
   useEffect(() => {
     if (user) {
-      fetchCurrentPlan();
+      fetchActivePlan();
     }
   }, [user]);
 
-  const fetchCurrentPlan = async () => {
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from('worship_plans')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('plan_type', 'weekly')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching current plan:', error);
-      return;
+  useEffect(() => {
+    if (activePlan) {
+      const plans = activePlan.study_type === 'book'
+        ? generateBookStudyPlan(activePlan.book_name, currentWeek)
+        : generateTopicStudyPlan(activePlan.topic_name, currentWeek);
+      setWeeklyPlans(plans);
     }
+  }, [activePlan, currentWeek]);
 
-    if (data) {
-      setCurrentPlan(data);
-      setStudyType(data.study_type as 'book' | 'topic');
-      if (data.book_name) setSelectedBook(data.book_name);
-      if (data.topic_name) setSelectedTopic(data.topic_name);
-      
-      // Fetch weekly entries
-      const { data: entries, error: entriesError } = await supabase
-        .from('daily_worship_entries')
-        .select('*')
-        .eq('worship_plan_id', data.id)
-        .order('date');
-      
-      if (entriesError) {
-        console.error('Error fetching weekly entries:', entriesError);
-        return;
-      }
-
-      if (entries) setWeeklyEntries(entries);
-    }
-  };
-
-  if (editingDay) {
-    return (
-      <DailyPlanEditor
-        date={editingDay.date}
-        initialData={editingDay.data}
-        onBack={() => setEditingDay(null)}
-      />
-    );
-  }
-
-  const weekPlan = generateCurrentWeekPlan();
+  const currentPlan = weeklyPlans[0];
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
+      <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-2 flex items-center">
-            <BookOpen className="w-6 h-6 mr-2" />
+            <Calendar className="w-6 h-6 mr-2" />
             Weekly Worship Plan
           </h2>
-          <p className="text-purple-100">Study God's word together as a family - Click any day to customize</p>
+          {activePlan ? (
+            <p className="text-blue-100">
+              Current Study: {activePlan.study_type === 'book' ? activePlan.book_name : activePlan.topic_name} - Week {currentWeek}
+            </p>
+          ) : (
+            <p className="text-blue-100">Create a new weekly study plan to get started</p>
+          )}
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Study Type
-          </label>
-          <Select value={studyType} onValueChange={(value: 'book' | 'topic') => setStudyType(value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="book">Bible Book</SelectItem>
-              <SelectItem value="topic">Spiritual Topics</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {studyType === 'book' ? 'Choose Bible Book' : 'Choose Topic'}
-          </label>
-          <Select 
-            value={studyType === 'book' ? selectedBook : selectedTopic} 
-            onValueChange={studyType === 'book' ? setSelectedBook : setSelectedTopic}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(studyType === 'book' ? bibleBooks : spiritualTopics).map((item) => (
-                <SelectItem key={item.value} value={item.value}>
-                  {item.name} ({studyType === 'book' ? `${(item as any).chapters} chapters` : `${(item as any).weeks} weeks`})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        {weekPlan.map((day, index) => {
-          const existingEntry = weeklyEntries.find(entry => entry.date === day.date);
-          const isCompleted = existingEntry?.is_completed;
+      {!activePlan ? (
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Create New Weekly Plan</h3>
           
-          return (
-            <Card 
-              key={index} 
-              className={`hover:shadow-md transition-all cursor-pointer ${
-                day.isToday ? 'ring-2 ring-blue-500 bg-blue-50' : 
-                day.isPast ? 'bg-gray-50 opacity-75' : ''
-              } ${isCompleted ? 'bg-green-50 border-green-200' : ''} hover:bg-purple-50`}
-              onClick={() => handleDayClick(day)}
-            >
-              <div className="p-4 flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-800">{day.day}</h4>
-                        {day.isToday && (
-                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                            Today
-                          </span>
-                        )}
-                        {isCompleted && (
-                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
-                            ✓ Completed
-                          </span>
-                        )}
-                        <span className="text-sm text-gray-500">
-                          {new Date(day.date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mt-1">{day.passage}</p>
-                      <p className="text-xs text-purple-600 font-medium mt-1">{day.focus}</p>
-                    </div>
-                    {day.isSabbath && (
-                      <div className="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-medium">
-                        Sabbath
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-gray-400" />
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Study Type
+              </label>
+              <Select value={studyType} onValueChange={setStudyType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="book">Bible Book</SelectItem>
+                  <SelectItem value="topic">Topic Study</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-      <Card className="bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200">
-        <div className="p-4">
-          <h3 className="font-semibold text-amber-800 mb-2 flex items-center">
-            <Calendar className="w-5 h-5 mr-2" />
-            How to Use
-          </h3>
-          <p className="text-amber-700 text-sm">
-            Click on any day to customize the worship plan with specific songs, discussion questions, 
-            and applications. Each plan includes comprehensive discussion questions that you can expand upon. 
-            Book studies start with 3 generic questions and allow you to add more custom ones.
-          </p>
+            {studyType === 'book' ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Book
+                </label>
+                <Select value={selectedBook} onValueChange={setSelectedBook}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bibleBooks.map(book => (
+                      <SelectItem key={book} value={book}>{book}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Topic
+                </label>
+                <Select value={selectedTopic} onValueChange={setSelectedTopic}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {topics.map(topic => (
+                      <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="flex items-end">
+              <Button 
+                onClick={createNewPlan}
+                disabled={loading}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                {loading ? 'Creating...' : 'Create Plan'}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : currentPlan ? (
+        <div className="space-y-4">
+          <Card className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-800">{currentPlan.theme}</h3>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateWeek('prev')}
+                  disabled={currentWeek <= 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                  Week {currentWeek}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateWeek('next')}
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </Card>
+
+          <PlanSection
+            icon={Book}
+            title="Bible Reading"
+            content={currentPlan.bibleReading}
+            color="bg-purple-50 border-purple-200"
+          />
+
+          <PlanSection
+            icon={Target}
+            title="Key Verse"
+            content={currentPlan.keyVerse}
+            color="bg-green-50 border-green-200"
+          />
+
+          <PlanSection
+            icon={Users}
+            title="Discussion Questions"
+            color="bg-orange-50 border-orange-200"
+          >
+            <ol className="space-y-2">
+              {currentPlan.discussion.map((question: string, index: number) => (
+                <li key={index} className="flex">
+                  <span className="bg-orange-200 text-orange-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-3 mt-0.5 flex-shrink-0">
+                    {index + 1}
+                  </span>
+                  <span className="text-gray-700">{question}</span>
+                </li>
+              ))}
+            </ol>
+          </PlanSection>
+
+          <PlanSection
+            icon={Target}
+            title="Family Activity"
+            content={currentPlan.activity}
+            color="bg-blue-50 border-blue-200"
+          />
+
+          <PlanSection
+            icon={Users}
+            title="Prayer Focus"
+            content={currentPlan.prayer}
+            color="bg-amber-50 border-amber-200"
+          />
+
+          <Card className="p-4">
+            <Button 
+              onClick={createNewPlan}
+              variant="outline"
+              className="w-full"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Start New Plan
+            </Button>
+          </Card>
         </div>
-      </Card>
+      ) : (
+        <div className="text-center p-8">Loading weekly plan...</div>
+      )}
     </div>
+  );
+};
+
+const PlanSection: React.FC<{
+  icon: React.ElementType;
+  title: string;
+  content?: string;
+  children?: React.ReactNode;
+  color: string;
+}> = ({ icon: Icon, title, content, children, color }) => {
+  return (
+    <Card className={`border-2 ${color} shadow-sm`}>
+      <div className="p-4">
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+          <Icon className="w-5 h-5 mr-2 text-gray-600" />
+          {title}
+        </h3>
+        {content && <p className="text-gray-700 leading-relaxed">{content}</p>}
+        {children}
+      </div>
+    </Card>
   );
 };
