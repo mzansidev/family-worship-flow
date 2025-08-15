@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Calendar, Book, Heart, Clock, Play, Pause, CheckCircle, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -30,40 +31,10 @@ export const WeeklyWorshipPlan = () => {
   const [selectedTopic, setSelectedTopic] = useState('Prayer and Faith');
   const [currentPlan, setCurrentPlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Call all hooks first before any conditional logic
   const { user } = useAuth();
   const { toast } = useToast();
-
-  // Show login prompt if user is not authenticated
-  if (!user) {
-    return (
-      <div className="space-y-6">
-        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
-          <div className="p-6">
-            <h2 className="text-2xl font-bold mb-2 flex items-center">
-              <Calendar className="w-6 h-6 mr-2" />
-              Weekly Worship Plan
-            </h2>
-            <p className="text-purple-100">Create structured weekly worship experiences</p>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="p-6 text-center">
-            <h3 className="text-lg font-semibold mb-4">Sign In Required</h3>
-            <p className="text-gray-600 mb-4">
-              Please sign in to create and manage your weekly worship plans.
-            </p>
-            <Button 
-              onClick={() => window.location.reload()} 
-              className="bg-purple-500 hover:bg-purple-600 text-white"
-            >
-              Sign In
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
 
   const fetchCurrentPlan = async () => {
     if (!user?.id) return;
@@ -257,11 +228,44 @@ export const WeeklyWorshipPlan = () => {
     return activities[topic]?.[week - 1] || `${topic} activity - Week ${week}`;
   };
 
+  // useEffect hook called after all other hooks
   useEffect(() => {
     if (user?.id) {
       fetchCurrentPlan();
     }
   }, [user?.id]);
+
+  // Conditional rendering after all hooks have been called
+  if (!user) {
+    return (
+      <div className="space-y-6">
+        <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
+          <div className="p-6">
+            <h2 className="text-2xl font-bold mb-2 flex items-center">
+              <Calendar className="w-6 h-6 mr-2" />
+              Weekly Worship Plan
+            </h2>
+            <p className="text-purple-100">Create structured weekly worship experiences</p>
+          </div>
+        </Card>
+
+        <Card>
+          <div className="p-6 text-center">
+            <h3 className="text-lg font-semibold mb-4">Sign In Required</h3>
+            <p className="text-gray-600 mb-4">
+              Please sign in to create and manage your weekly worship plans.
+            </p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              className="bg-purple-500 hover:bg-purple-600 text-white"
+            >
+              Sign In
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   if (!currentPlan) {
     return (
