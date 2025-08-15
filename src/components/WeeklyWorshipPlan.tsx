@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Book, Heart, Clock, Play, Pause, CheckCircle, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,7 +65,7 @@ export const WeeklyWorshipPlan = () => {
     );
   }
 
-  const fetchCurrentPlan = useCallback(async () => {
+  const fetchCurrentPlan = async () => {
     if (!user?.id) return;
     
     try {
@@ -94,7 +94,7 @@ export const WeeklyWorshipPlan = () => {
     } catch (error) {
       console.error('Error in fetchCurrentPlan:', error);
     }
-  }, [user?.id]);
+  };
 
   const createNewPlan = async () => {
     setLoading(true);
@@ -258,8 +258,10 @@ export const WeeklyWorshipPlan = () => {
   };
 
   useEffect(() => {
-    fetchCurrentPlan();
-  }, [fetchCurrentPlan]);
+    if (user?.id) {
+      fetchCurrentPlan();
+    }
+  }, [user?.id]);
 
   if (!currentPlan) {
     return (
