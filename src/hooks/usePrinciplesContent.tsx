@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { calculateReadingTime } from '@/utils/readingTimeCalculator';
 
 export interface PrincipleContent {
   id: string;
@@ -38,16 +38,20 @@ export const usePrinciplesContent = () => {
           principle && typeof principle === 'object' && 
           'id' in principle && 'title' in principle && 'content' in principle
         );
-        setPrinciples(validPrinciples.map(principle => ({
+        
+        // Calculate dynamic reading time for each principle
+        const principlesWithReadingTime = validPrinciples.map(principle => ({
           id: principle.id,
           title: principle.title,
           content: principle.content,
           category_id: principle.category_id,
-          read_time: principle.read_time,
+          read_time: calculateReadingTime(principle.content),
           is_new: principle.is_new,
           created_at: principle.created_at,
           updated_at: principle.updated_at
-        })) as unknown as PrincipleContent[]);
+        }));
+        
+        setPrinciples(principlesWithReadingTime as unknown as PrincipleContent[]);
       } else {
         setPrinciples([]);
       }
@@ -59,18 +63,27 @@ export const usePrinciplesContent = () => {
     }
   };
 
-  const addPrinciple = async (principle: Omit<PrincipleContent, 'id' | 'created_at' | 'updated_at'>) => {
+  const addPrinciple = async (principle: Omit<PrincipleContent, 'id' | 'created_at' | 'updated_at' | 'read_time'>) => {
     try {
+      // Calculate reading time before inserting
+      const readTime = calculateReadingTime(principle.content);
+      
       const { data, error } = await supabase
         .from('principles_content')
-        .insert(principle as any)
+        .insert({
+          ...principle,
+          read_time: readTime
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
 
       if (data && typeof data === 'object') {
-        const newPrinciple = data as unknown as PrincipleContent;
+        const newPrinciple = {
+          ...data,
+          read_time: readTime
+        } as unknown as PrincipleContent;
         setPrinciples(prev => [newPrinciple, ...prev]);
         return newPrinciple;
       }
@@ -83,9 +96,15 @@ export const usePrinciplesContent = () => {
 
   const updatePrinciple = async (id: string, updates: Partial<PrincipleContent>) => {
     try {
+      // Recalculate reading time if content is being updated
+      let updatedData = { ...updates };
+      if (updates.content) {
+        updatedData.read_time = calculateReadingTime(updates.content);
+      }
+
       const { data, error } = await supabase
         .from('principles_content')
-        .update(updates as any)
+        .update(updatedData as any)
         .eq('id', id as any)
         .select()
         .single();
@@ -93,7 +112,10 @@ export const usePrinciplesContent = () => {
       if (error) throw error;
 
       if (data && typeof data === 'object') {
-        const updatedPrinciple = data as unknown as PrincipleContent;
+        const updatedPrinciple = {
+          ...data,
+          read_time: data.content ? calculateReadingTime(data.content) : data.read_time
+        } as unknown as PrincipleContent;
         setPrinciples(prev =>
           prev.map(principle =>
             principle.id === id ? updatedPrinciple : principle

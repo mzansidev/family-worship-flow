@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,12 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Plus, Save, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { calculateReadingTime } from '@/utils/readingTimeCalculator';
 
 interface PrincipleFormData {
   title: string;
   content: string;
   category_id: string;
-  read_time: string;
 }
 
 interface AdminPrincipleFormProps {
@@ -25,8 +26,7 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
   const [formData, setFormData] = useState<PrincipleFormData>({
     title: '',
     content: '',
-    category_id: 'getting-started',
-    read_time: '5 min'
+    category_id: 'getting-started'
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -51,13 +51,16 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
 
     setLoading(true);
     try {
+      // Calculate reading time dynamically
+      const readTime = calculateReadingTime(formData.content);
+      
       const { error } = await supabase
         .from('principles_content')
         .insert({
           title: formData.title,
           content: formData.content,
           category_id: formData.category_id,
-          read_time: formData.read_time,
+          read_time: readTime,
           is_new: true
         } as any);
 
@@ -71,8 +74,7 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
       setFormData({
         title: '',
         content: '',
-        category_id: 'getting-started',
-        read_time: '5 min'
+        category_id: 'getting-started'
       });
       setShowForm(false);
       onSuccess();
@@ -87,6 +89,8 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
       setLoading(false);
     }
   };
+
+  const estimatedReadTime = formData.content ? calculateReadingTime(formData.content) : '0 min';
 
   if (!showForm) {
     return (
@@ -148,16 +152,6 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
         </div>
 
         <div>
-          <Label htmlFor="read_time">Read Time</Label>
-          <Input
-            id="read_time"
-            value={formData.read_time}
-            onChange={(e) => setFormData(prev => ({ ...prev, read_time: e.target.value }))}
-            placeholder="e.g., 5 min"
-          />
-        </div>
-
-        <div>
           <Label htmlFor="content">Content *</Label>
           <Textarea
             id="content"
@@ -167,6 +161,11 @@ export const AdminPrincipleForm: React.FC<AdminPrincipleFormProps> = ({ onSucces
             rows={10}
             required
           />
+          {formData.content && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Estimated reading time: {estimatedReadTime}
+            </p>
+          )}
         </div>
 
         <div className="flex gap-2">
