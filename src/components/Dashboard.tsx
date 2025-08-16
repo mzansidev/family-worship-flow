@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Trophy, Calendar, Target, Award, Flame, Users, Settings } from 'lucide-react';
+import { BarChart3, Trophy, Calendar, Target, Award, Flame, Users, Settings, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ReflectionsList } from './ReflectionsList';
 import { FamilyMembersSection } from './FamilyMembersSection';
 import { PasswordChangeForm } from './PasswordChangeForm';
+import { ErrorBoundary } from './common/ErrorBoundary';
 
 export const Dashboard = () => {
   const { stats, loading } = useUserStats();
@@ -56,6 +57,7 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Hero Card */}
       <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-2 flex items-center">
@@ -111,6 +113,7 @@ export const Dashboard = () => {
       {/* Password Change Section */}
       <PasswordChangeForm />
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Total Days"
@@ -138,6 +141,7 @@ export const Dashboard = () => {
         />
       </div>
 
+      {/* Weekly Progress */}
       <Card>
         <div className="p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -149,7 +153,14 @@ export const Dashboard = () => {
               <span>This Week</span>
               <span>{stats.completedThisWeek} / {stats.weeklyGoal} days</span>
             </div>
-            <Progress value={(stats.completedThisWeek / stats.weeklyGoal) * 100} className="h-3" />
+            <Progress
+              value={
+                Number.isFinite((stats.completedThisWeek / (stats.weeklyGoal || 1)) * 100)
+                  ? (stats.completedThisWeek / (stats.weeklyGoal || 1)) * 100
+                  : 0
+              }
+              className="h-3"
+            />
           </div>
           <p className="text-sm text-gray-600">
             {stats.weeklyGoal - stats.completedThisWeek > 0 
@@ -160,10 +171,51 @@ export const Dashboard = () => {
         </div>
       </Card>
 
-      <FamilyMembersSection />
+      {/* Family Members - wrapped in ErrorBoundary */}
+      <ErrorBoundary
+        fallback={
+          <Card>
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-2 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-gray-600" />
+                Family Members
+              </h3>
+              <p className="text-sm text-gray-600">
+                We couldn’t load this section due to an unexpected error. Please try again.
+              </p>
+              <Button className="mt-3" variant="outline" onClick={() => { /* Retry handled by boundary reset */ }}>
+                Retry
+              </Button>
+            </div>
+          </Card>
+        }
+      >
+        <FamilyMembersSection />
+      </ErrorBoundary>
 
-      <ReflectionsList />
+      {/* Reflections - wrapped in ErrorBoundary */}
+      <ErrorBoundary
+        fallback={
+          <Card>
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-2 flex items-center">
+                <MessageCircle className="w-5 h-5 mr-2 text-gray-600" />
+                Reflections
+              </h3>
+              <p className="text-sm text-gray-600">
+                We couldn’t load your reflections right now. Please try again.
+              </p>
+              <Button className="mt-3" variant="outline" onClick={() => { /* Retry handled by boundary reset */ }}>
+                Retry
+              </Button>
+            </div>
+          </Card>
+        }
+      >
+        <ReflectionsList />
+      </ErrorBoundary>
 
+      {/* Badges */}
       <Card>
         <div className="p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
@@ -202,6 +254,7 @@ export const Dashboard = () => {
         </div>
       </Card>
 
+      {/* Motivation */}
       <Card className="bg-gradient-to-r from-emerald-50 to-blue-50 border-emerald-200">
         <div className="p-4">
           <h3 className="font-semibold text-emerald-800 mb-2">🎯 Keep Going!</h3>
