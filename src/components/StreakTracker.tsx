@@ -2,10 +2,29 @@
 import React from 'react';
 import { Calendar, Flame, Trophy } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { useUserStats } from '@/hooks/useUserStats';
 
 export const StreakTracker = () => {
-  const currentStreak = 7;
-  const totalDays = 23;
+  const { stats, loading } = useUserStats();
+
+  if (loading) {
+    return (
+      <Card className="mb-6 bg-gradient-to-r from-blue-600 to-blue-500 text-white border-0 shadow-lg">
+        <div className="p-6">
+          <div className="animate-pulse">
+            <div className="h-6 bg-white/20 rounded mb-4"></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-8 bg-white/20 rounded"></div>
+              <div className="h-8 bg-white/20 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  const currentStreak = stats.currentStreak;
+  const totalDays = stats.totalDays;
 
   return (
     <Card className="mb-6 bg-gradient-to-r from-blue-600 to-blue-500 text-white border-0 shadow-lg">
@@ -32,11 +51,11 @@ export const StreakTracker = () => {
         <div className="mt-4 bg-white/20 rounded-full p-1">
           <div 
             className="bg-white rounded-full h-2 transition-all duration-300"
-            style={{ width: `${(currentStreak / 30) * 100}%` }}
+            style={{ width: `${Math.min((currentStreak / 30) * 100, 100)}%` }}
           />
         </div>
         <div className="text-center mt-2 text-blue-100 text-sm">
-          {30 - currentStreak} days to next milestone
+          {Math.max(30 - currentStreak, 0)} days to next milestone
         </div>
       </div>
     </Card>

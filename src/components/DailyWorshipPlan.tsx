@@ -18,7 +18,7 @@ export const DailyWorshipPlan = () => {
   const [isCompleted, setIsCompleted] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { updateStats } = useUserStats();
+  const { updateStats, refetch } = useUserStats();
 
   const generateDiscussionQuestions = (theme: string, age: string) => {
     const baseQuestions = [
@@ -146,6 +146,7 @@ export const DailyWorshipPlan = () => {
     const today = new Date().toISOString().split('T')[0];
     
     try {
+      // Update the daily entry as completed
       const { error } = await supabase
         .from('daily_worship_entries')
         .update({ is_completed: true } as any)
@@ -155,11 +156,16 @@ export const DailyWorshipPlan = () => {
       if (error) throw error;
 
       setIsCompleted(true);
+      
+      // Update user stats - this will handle streak calculation
       await updateStats(true);
       
+      // Refresh stats to get updated values
+      await refetch();
+      
       toast({
-        title: "Great job!",
-        description: "Today's worship session marked as complete!"
+        title: "Congratulations! 🎉",
+        description: "Today's worship session completed! Your streak and stats have been updated."
       });
     } catch (error) {
       console.error('Error marking complete:', error);
