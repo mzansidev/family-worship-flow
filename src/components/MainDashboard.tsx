@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { FeatureTiles } from './FeatureTiles';
 import { DailyWorshipPlan } from './DailyWorshipPlan';
@@ -18,6 +18,13 @@ export const MainDashboard = () => {
   const [activeFeature, setActiveFeature] = useState<ActiveFeature>('dashboard');
   const { user, loading } = useAuth();
 
+  // Redirect to dashboard when user logs in
+  useEffect(() => {
+    if (user && activeFeature === 'auth') {
+      setActiveFeature('dashboard');
+    }
+  }, [user, activeFeature]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 flex items-center justify-center">
@@ -29,15 +36,19 @@ export const MainDashboard = () => {
     );
   }
 
+  const handleSuccessfulAuth = () => {
+    setActiveFeature('dashboard');
+  };
+
   const renderActiveFeature = () => {
     // Show auth page if user requests it or if trying to access protected features while not logged in
     if (activeFeature === 'auth') {
-      return <AuthPage />;
+      return <AuthPage onSuccessfulAuth={handleSuccessfulAuth} />;
     }
 
     // If user is not logged in and trying to access protected features, show auth page
     if (!user && (activeFeature === 'daily' || activeFeature === 'weekly' || activeFeature === 'profile')) {
-      return <AuthPage />;
+      return <AuthPage onSuccessfulAuth={handleSuccessfulAuth} />;
     }
 
     switch (activeFeature) {
