@@ -1,12 +1,12 @@
 
 import React from 'react';
-import { BookOpen, User, LogIn, LogOut, Info } from 'lucide-react';
+import { BookOpen, User, LogIn, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from './ThemeToggle';
 
-type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth' | 'about';
+type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth';
 
 interface HeaderProps {
   activeFeature: ActiveFeature;
@@ -40,7 +40,6 @@ export const Header: React.FC<HeaderProps> = ({ activeFeature, onNavigate, isLog
     { key: 'weekly' as const, label: 'Weekly', icon: BookOpen },
     { key: 'principles' as const, label: 'Principles', icon: BookOpen },
     { key: 'profile' as const, label: 'Profile', icon: User },
-    { key: 'about' as const, label: 'About', icon: Info },
   ];
 
   return (
