@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Book, Heart, MessageCircle, Play } from 'lucide-react';
+import { Book, Heart, MessageCircle, Play, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 
 interface WeeklyPlanContentProps {
