@@ -35,9 +35,9 @@ export const WeeklyWorshipPlan = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Robust normalization helpers (DB expects 'bible_book' or 'topical')
-  const toDbStudyType = (val: string) => (val === 'topical' ? 'topical' : 'bible_book');
-  const fromDbStudyType = (val: string) => (val === 'topical' ? 'topical' : 'bible-book');
+  // Database expects specific values - let's use 'book' and 'topic' instead
+  const toDbStudyType = (val: string) => (val === 'topical' ? 'topic' : 'book');
+  const fromDbStudyType = (val: string) => (val === 'topic' ? 'topical' : 'bible-book');
 
   const fetchCurrentPlan = async () => {
     if (!user?.id) return;
@@ -59,8 +59,7 @@ export const WeeklyWorshipPlan = () => {
       if (plan) {
         console.log('[WeeklyWorshipPlan] fetched plan:', plan);
         setCurrentPlan(plan);
-        const normalized = fromDbStudyType(plan.study_type || 'bible_book');
-        // Keep UI state using hyphen variant
+        const normalized = fromDbStudyType(plan.study_type || 'book');
         setStudyType(normalized || 'bible-book');
         if (normalized === 'bible-book') {
           setSelectedBook(plan.book_name || 'Genesis');
@@ -89,10 +88,10 @@ export const WeeklyWorshipPlan = () => {
       // Create new plan with proper data structure
       const planData = {
         user_id: user!.id,
-        study_type: normalizedStudyType, // only 'bible_book' or 'topical'
+        study_type: normalizedStudyType, // 'book' or 'topic'
         plan_type: 'weekly',
-        book_name: normalizedStudyType === 'bible_book' ? selectedBook : null,
-        topic_name: normalizedStudyType === 'topical' ? selectedTopic : null,
+        book_name: normalizedStudyType === 'book' ? selectedBook : null,
+        topic_name: normalizedStudyType === 'topic' ? selectedTopic : null,
         current_week: 1,
         current_chapter: 1,
         is_active: true,
@@ -164,7 +163,7 @@ export const WeeklyWorshipPlan = () => {
     if (!currentPlan) return null;
 
     const st = currentPlan.study_type;
-    const isBibleBook = st === 'bible_book' || st === 'bible-book';
+    const isBibleBook = st === 'book' || st === 'bible-book';
 
     if (isBibleBook) {
       const book = currentPlan.book_name;
@@ -248,7 +247,6 @@ export const WeeklyWorshipPlan = () => {
     }
   }, [user?.id]);
 
-  // Conditional rendering after all hooks have been called
   if (!user) {
     return (
       <div className="space-y-6">
