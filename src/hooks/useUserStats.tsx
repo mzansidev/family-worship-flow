@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,16 +28,16 @@ export const useUserStats = () => {
       const { data: userStats } = await supabase
         .from('user_stats')
         .select('*')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id as any)
+        .maybeSingle();
 
-      if (userStats) {
+      if (userStats && typeof userStats === 'object') {
         // Calculate this month's worship days
         const { data: monthlyEntries } = await supabase
           .from('daily_worship_entries')
           .select('date')
-          .eq('user_id', user.id)
-          .eq('is_completed', true)
+          .eq('user_id', user.id as any)
+          .eq('is_completed', true as any)
           .gte('date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
 
         // Calculate this week's completed days
@@ -48,19 +47,22 @@ export const useUserStats = () => {
         const { data: weeklyEntries } = await supabase
           .from('daily_worship_entries')
           .select('date')
-          .eq('user_id', user.id)
-          .eq('is_completed', true)
+          .eq('user_id', user.id as any)
+          .eq('is_completed', true as any)
           .gte('date', startOfWeek.toISOString().split('T')[0]);
 
         setStats({
-          totalDays: userStats.total_worship_days || 0,
-          currentStreak: userStats.current_streak || 0,
-          longestStreak: userStats.longest_streak || 0,
+          totalDays: (userStats as any).total_worship_days || 0,
+          currentStreak: (userStats as any).current_streak || 0,
+          longestStreak: (userStats as any).longest_streak || 0,
           thisMonth: monthlyEntries?.length || 0,
           weeklyGoal: 7,
           completedThisWeek: weeklyEntries?.length || 0,
-          lastWorshipDate: userStats.last_worship_date ? new Date(userStats.last_worship_date) : null
+          lastWorshipDate: (userStats as any).last_worship_date ? new Date((userStats as any).last_worship_date) : null
         });
+      } else {
+        // No stats row yet; keep defaults
+        setStats(prev => ({ ...prev, totalDays: 0, currentStreak: 0, longestStreak: 0, thisMonth: 0, completedThisWeek: 0 }));
       }
     } catch (error) {
       console.error('Error fetching user stats:', error);
@@ -97,7 +99,7 @@ export const useUserStats = () => {
         }
       }
 
-      await supabase
+      const { error: upsertErr } = await supabase
         .from('user_stats')
         .upsert({
           user_id: user.id,
@@ -105,7 +107,11 @@ export const useUserStats = () => {
           current_streak: newCurrentStreak,
           longest_streak: newLongestStreak,
           last_worship_date: completedToday ? today : (stats.lastWorshipDate ? stats.lastWorshipDate.toISOString().split('T')[0] : null)
-        });
+        } as any, { onConflict: 'user_id' });
+
+      if (upsertErr) {
+        console.error('Error upserting stats:', upsertErr);
+      }
 
       await fetchUserStats(); // Refresh stats
     } catch (error) {

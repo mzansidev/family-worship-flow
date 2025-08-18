@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './Header';
 import { FeatureTiles } from './FeatureTiles';
 import { DailyWorshipPlan } from './DailyWorshipPlan';
@@ -10,12 +10,20 @@ import { AuthPage } from './AuthPage';
 import { useAuth } from '@/hooks/useAuth';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { AboutUs } from './AboutUs';
 
-type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile';
+type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth' | 'about';
 
 export const MainDashboard = () => {
   const [activeFeature, setActiveFeature] = useState<ActiveFeature>('dashboard');
   const { user, loading } = useAuth();
+
+  // Redirect to dashboard when user logs in
+  useEffect(() => {
+    if (user && activeFeature === 'auth') {
+      setActiveFeature('dashboard');
+    }
+  }, [user, activeFeature]);
 
   if (loading) {
     return (
@@ -28,15 +36,21 @@ export const MainDashboard = () => {
     );
   }
 
-  if (!user) {
-    return (
-      <ThemeProvider>
-        <AuthPage />
-      </ThemeProvider>
-    );
-  }
+  const handleSuccessfulAuth = () => {
+    setActiveFeature('dashboard');
+  };
 
   const renderActiveFeature = () => {
+    // Show auth page if user requests it or if trying to access protected features while not logged in
+    if (activeFeature === 'auth') {
+      return <AuthPage onSuccessfulAuth={handleSuccessfulAuth} />;
+    }
+
+    // If user is not logged in and trying to access protected features, show auth page
+    if (!user && (activeFeature === 'daily' || activeFeature === 'weekly' || activeFeature === 'profile')) {
+      return <AuthPage onSuccessfulAuth={handleSuccessfulAuth} />;
+    }
+
     switch (activeFeature) {
       case 'daily':
         return <DailyWorshipPlan />;
@@ -46,8 +60,10 @@ export const MainDashboard = () => {
         return <PrinciplesLibrary />;
       case 'profile':
         return <Dashboard />;
+      case 'about':
+        return <AboutUs />;
       default:
-        return <FeatureTiles />;
+        return <FeatureTiles onNavigate={(feature) => setActiveFeature(feature)} />;
     }
   };
 
@@ -57,6 +73,7 @@ export const MainDashboard = () => {
         <Header 
           activeFeature={activeFeature} 
           onNavigate={setActiveFeature}
+          isLoggedIn={!!user}
         />
         
         <main className="container mx-auto px-4 py-6 max-w-4xl">

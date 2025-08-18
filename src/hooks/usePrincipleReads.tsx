@@ -27,7 +27,11 @@ export const usePrincipleReads = () => {
         // If the function doesn't exist, fallback to empty set
         setReadPrinciples(new Set());
       } else {
-        const readIds = new Set(data?.map((item: any) => item.principle_id) || []);
+        const readIds = new Set(
+          Array.isArray(data) 
+            ? data.map((item: any) => item.principle_id as string).filter(Boolean)
+            : []
+        );
         setReadPrinciples(readIds);
       }
     } catch (error) {

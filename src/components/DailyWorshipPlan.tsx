@@ -18,7 +18,36 @@ export const DailyWorshipPlan = () => {
   const [isCompleted, setIsCompleted] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { updateStats } = useUserStats();
+  const { updateStats, refetch } = useUserStats();
+
+  const generateDiscussionQuestions = (theme: string, age: string) => {
+    const baseQuestions = [
+      `What does today's passage teach us about ${theme.toLowerCase()}?`,
+      'How can we apply this lesson in our daily lives?',
+      'What are some ways we can remember this truth throughout the week?'
+    ];
+
+    const ageSpecific = {
+      child: [
+        'Can you draw a picture of what this story means?',
+        'What would you tell a friend about God from this story?'
+      ],
+      teen: [
+        'How does this apply to challenges you face at school?',
+        'What questions does this raise for you about faith?'
+      ],
+      adult: [
+        'How has God demonstrated this truth in your life experience?',
+        'What practical steps can we take to live this out?'
+      ],
+      family: [
+        'How can our family show others this truth about God?',
+        'What is one thing each of us can do this week to practice this?'
+      ]
+    };
+
+    return [...baseQuestions, ...ageSpecific[age as keyof typeof ageSpecific]];
+  };
 
   const generateRandomPlan = () => {
     const themes = [
@@ -54,79 +83,72 @@ export const DailyWorshipPlan = () => {
     };
   };
 
-  const generateDiscussionQuestions = (theme: string, age: string) => {
-    const baseQuestions = [
-      `What does today's passage teach us about ${theme.toLowerCase()}?`,
-      'How can we apply this lesson in our daily lives?',
-      'What are some ways we can remember this truth throughout the week?'
-    ];
-
-    const ageSpecific = {
-      child: [
-        'Can you draw a picture of what this story means?',
-        'What would you tell a friend about God from this story?'
-      ],
-      teen: [
-        'How does this apply to challenges you face at school?',
-        'What questions does this raise for you about faith?'
-      ],
-      adult: [
-        'How has God demonstrated this truth in your life experience?',
-        'What practical steps can we take to live this out?'
-      ],
-      family: [
-        'How can our family show others this truth about God?',
-        'What is one thing each of us can do this week to practice this?'
-      ]
-    };
-
-    return [...baseQuestions, ...ageSpecific[age as keyof typeof ageSpecific]];
-  };
-
   const fetchTodaysPlan = async () => {
     if (!user) return;
 
     const today = new Date().toISOString().split('T')[0];
-    
-    // Check if there's already a plan for today
-    const { data: existingPlan } = await supabase
-      .from('daily_worship_entries')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('date', today)
-      .maybeSingle();
+    console.log('[DailyWorshipPlan] fetchTodaysPlan for', { userId: user.id, today });
 
-    if (existingPlan) {
-      setCurrentPlan({
-        openingSong: existingPlan.opening_song,
-        bibleReading: existingPlan.bible_reading,
-        discussion: existingPlan.discussion_questions,
-        application: existingPlan.application,
-        closingSong: existingPlan.closing_song,
-        theme: existingPlan.theme
-      });
-      setIsCompleted(existingPlan.is_completed || false);
-      return;
+    try {
+      // Fetch the most recent entry (avoid maybeSingle to prevent PGRST116)
+      const { data: plans, error } = await supabase
+        .from('daily_worship_entries')
+        .select('*')
+        .eq('user_id', user.id as any)
+        .eq('date', today as any)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error('Error fetching plan list:', error);
+      }
+
+      const existingPlan = plans && plans.length > 0 ? plans[0] : null;
+
+      if (existingPlan && typeof existingPlan === 'object' && 'opening_song' in existingPlan) {
+        console.log('[DailyWorshipPlan] using existing plan id', (existingPlan as any).id);
+        setCurrentPlan({
+          openingSong: (existingPlan as any).opening_song || '',
+          bibleReading: (existingPlan as any).bible_reading || '',
+          discussion: (existingPlan as any).discussion_questions || [],
+          application: (existingPlan as any).application || '',
+          closingSong: (existingPlan as any).closing_song || '',
+          theme: (existingPlan as any).theme || ''
+        });
+        setIsCompleted((existingPlan as any).is_completed || false);
+        return;
+      }
+
+      // Generate random plan (no existing plan today)
+      const randomPlan = generateRandomPlan();
+      setCurrentPlan(randomPlan);
+
+      // Save to database
+      const { error: insertErr } = await supabase
+        .from('daily_worship_entries')
+        .insert({
+          user_id: user.id,
+          date: today as any,
+          opening_song: randomPlan.openingSong,
+          bible_reading: randomPlan.bibleReading,
+          discussion_questions: randomPlan.discussion,
+          application: randomPlan.application,
+          closing_song: randomPlan.closingSong,
+          theme: randomPlan.theme,
+          is_completed: false
+        } as any);
+
+      if (insertErr) {
+        console.error("Error inserting today's plan:", insertErr);
+      }
+    } catch (error) {
+      console.error('Error in fetchTodaysPlan:', error);
+      // As a safety, ensure UI doesn't get stuck on loading
+      if (!currentPlan) {
+        const fallbackPlan = generateRandomPlan();
+        setCurrentPlan(fallbackPlan);
+      }
     }
-
-    // Generate random plan
-    const randomPlan = generateRandomPlan();
-    setCurrentPlan(randomPlan);
-    
-    // Save to database
-    await supabase
-      .from('daily_worship_entries')
-      .upsert([{
-        user_id: user.id,
-        date: today,
-        opening_song: randomPlan.openingSong,
-        bible_reading: randomPlan.bibleReading,
-        discussion_questions: randomPlan.discussion,
-        application: randomPlan.application,
-        closing_song: randomPlan.closingSong,
-        theme: randomPlan.theme,
-        is_completed: false
-      }], { onConflict: 'user_id,date' });
   };
 
   const handleMarkCompleted = async () => {
@@ -135,18 +157,26 @@ export const DailyWorshipPlan = () => {
     const today = new Date().toISOString().split('T')[0];
     
     try {
-      await supabase
+      // Update the daily entry as completed
+      const { error } = await supabase
         .from('daily_worship_entries')
-        .update({ is_completed: true })
-        .eq('user_id', user.id)
-        .eq('date', today);
+        .update({ is_completed: true } as any)
+        .eq('user_id', user.id as any)
+        .eq('date', today as any);
+
+      if (error) throw error;
 
       setIsCompleted(true);
+      
+      // Update user stats - this will handle streak calculation
       await updateStats(true);
       
+      // Refresh stats to get updated values
+      await refetch();
+      
       toast({
-        title: "Great job!",
-        description: "Today's worship session marked as complete!"
+        title: "Congratulations! 🎉",
+        description: "Today's worship session completed! Your streak and stats have been updated."
       });
     } catch (error) {
       console.error('Error marking complete:', error);
@@ -165,18 +195,44 @@ export const DailyWorshipPlan = () => {
 
     if (user) {
       const today = new Date().toISOString().split('T')[0];
-      await supabase
+
+      // Safely get the latest entry for today to update or insert
+      const { data: existingRows, error: existErr } = await supabase
         .from('daily_worship_entries')
-        .upsert([{
-          user_id: user.id,
-          date: today,
-          opening_song: newPlan.openingSong,
-          bible_reading: newPlan.bibleReading,
-          discussion_questions: newPlan.discussion,
-          application: newPlan.application,
-          closing_song: newPlan.closingSong,
-          theme: newPlan.theme
-        }], { onConflict: 'user_id,date' });
+        .select('id')
+        .eq('user_id', user.id as any)
+        .eq('date', today as any)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!existErr && existingRows && existingRows.length > 0) {
+        const existingId = (existingRows[0] as any).id;
+        await supabase
+          .from('daily_worship_entries')
+          .update({
+            opening_song: newPlan.openingSong,
+            bible_reading: newPlan.bibleReading,
+            discussion_questions: newPlan.discussion,
+            application: newPlan.application,
+            closing_song: newPlan.closingSong,
+            theme: newPlan.theme,
+            updated_at: new Date().toISOString()
+          } as any)
+          .eq('id', existingId);
+      } else {
+        await supabase
+          .from('daily_worship_entries')
+          .insert({
+            user_id: user.id,
+            date: today as any,
+            opening_song: newPlan.openingSong,
+            bible_reading: newPlan.bibleReading,
+            discussion_questions: newPlan.discussion,
+            application: newPlan.application,
+            closing_song: newPlan.closingSong,
+            theme: newPlan.theme
+          } as any);
+      }
     }
     
     setLoading(false);
@@ -185,13 +241,30 @@ export const DailyWorshipPlan = () => {
   const updateUserPreferences = async () => {
     if (!user) return;
 
-    await supabase
+    // Replace upsert with explicit check-then-update/insert to avoid onConflict errors
+    const { data: existing, error: existErr } = await supabase
       .from('user_preferences')
-      .upsert([{
-        user_id: user.id,
-        daily_plan_source: planSource,
-        default_age_range: ageRange
-      }], { onConflict: 'user_id' });
+      .select('id')
+      .eq('user_id', user.id as any)
+      .maybeSingle();
+
+    if (!existErr && existing) {
+      await supabase
+        .from('user_preferences')
+        .update({
+          daily_plan_source: planSource,
+          default_age_range: ageRange
+        } as any)
+        .eq('id', (existing as any).id);
+    } else {
+      await supabase
+        .from('user_preferences')
+        .insert({
+          user_id: user.id,
+          daily_plan_source: planSource,
+          default_age_range: ageRange
+        } as any);
+    }
   };
 
   useEffect(() => {
@@ -201,12 +274,12 @@ export const DailyWorshipPlan = () => {
       supabase
         .from('user_preferences')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user.id as any)
         .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            setPlanSource(data.daily_plan_source as PlanSource);
-            setAgeRange(data.default_age_range || 'family');
+        .then(({ data, error }) => {
+          if (!error && data && typeof data === 'object' && 'daily_plan_source' in data) {
+            setPlanSource(((data as any).daily_plan_source as PlanSource) || 'random');
+            setAgeRange((data as any).default_age_range || 'family');
           }
         });
     }
@@ -332,7 +405,7 @@ export const DailyWorshipPlan = () => {
           color="bg-orange-50 border-orange-200"
         >
           <ol className="space-y-2">
-            {currentPlan.discussion.map((question: string, index: number) => (
+            {Array.isArray(currentPlan.discussion) && currentPlan.discussion.map((question: string, index: number) => (
               <li key={index} className="flex">
                 <span className="bg-orange-200 text-orange-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-3 mt-0.5 flex-shrink-0">
                   {index + 1}

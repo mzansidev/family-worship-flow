@@ -1,23 +1,28 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Calendar, BookOpen, Lightbulb, BarChart3 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import { DailyWorshipPlan } from './DailyWorshipPlan';
-import { WeeklyWorshipPlan } from './WeeklyWorshipPlan';
-import { PrinciplesLibrary } from './PrinciplesLibrary';
-import { Dashboard } from './Dashboard';
 
-export const FeatureTiles = () => {
-  const [activeFeature, setActiveFeature] = useState<string | null>(null);
+type NavigableFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile';
 
-  const features = [
+interface FeatureTilesProps {
+  onNavigate: (feature: NavigableFeature) => void;
+}
+
+export const FeatureTiles: React.FC<FeatureTilesProps> = ({ onNavigate }) => {
+  const features: {
+    id: NavigableFeature;
+    title: string;
+    description: string;
+    icon: React.ElementType;
+    color: string;
+  }[] = [
     {
       id: 'daily',
       title: 'Daily Worship Plan',
       description: 'Generate personalized daily worship experiences',
       icon: Calendar,
       color: 'from-emerald-500 to-emerald-600',
-      component: DailyWorshipPlan
     },
     {
       id: 'weekly',
@@ -25,7 +30,6 @@ export const FeatureTiles = () => {
       description: 'Study Bible books together over the week',
       icon: BookOpen,
       color: 'from-purple-500 to-purple-600',
-      component: WeeklyWorshipPlan
     },
     {
       id: 'principles',
@@ -33,7 +37,6 @@ export const FeatureTiles = () => {
       description: 'Tips and resources for meaningful family worship',
       icon: Lightbulb,
       color: 'from-orange-500 to-orange-600',
-      component: PrinciplesLibrary
     },
     {
       id: 'dashboard',
@@ -41,27 +44,8 @@ export const FeatureTiles = () => {
       description: 'Track progress and celebrate milestones',
       icon: BarChart3,
       color: 'from-blue-500 to-blue-600',
-      component: Dashboard
-    }
+    },
   ];
-
-  if (activeFeature) {
-    const feature = features.find(f => f.id === activeFeature);
-    if (feature) {
-      const Component = feature.component;
-      return (
-        <div>
-          <button
-            onClick={() => setActiveFeature(null)}
-            className="mb-6 text-blue-600 hover:text-blue-700 flex items-center text-sm font-medium transition-colors"
-          >
-            ← Back to main menu
-          </button>
-          <Component />
-        </div>
-      );
-    }
-  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -71,7 +55,7 @@ export const FeatureTiles = () => {
           <Card
             key={feature.id}
             className="group cursor-pointer border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden"
-            onClick={() => setActiveFeature(feature.id)}
+            onClick={() => onNavigate(feature.id)}
           >
             <div className={`bg-gradient-to-br ${feature.color} p-6 text-white`}>
               <div className="flex items-start justify-between mb-4">

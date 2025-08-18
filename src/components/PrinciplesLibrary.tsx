@@ -23,7 +23,7 @@ export const PrinciplesLibrary = () => {
   const [selectedArticle, setSelectedArticle] = useState<PrincipleContent | null>(null);
   const { profile } = useUserProfile();
   const { readPrinciples, markAsRead } = usePrincipleReads();
-  const { principlesContent, loading, deletePrinciple, refetch } = usePrinciplesContent();
+  const { principles, loading, deletePrinciple, refetch } = usePrinciplesContent();
   const { toast } = useToast();
 
   const categories = [
@@ -54,7 +54,7 @@ export const PrinciplesLibrary = () => {
   ];
 
   const getArticlesForCategory = (categoryId: string) => {
-    return principlesContent.filter(article => article.category_id === categoryId);
+    return principles.filter(article => article.category_id === categoryId);
   };
 
   const getCategoryStats = (categoryId: string) => {

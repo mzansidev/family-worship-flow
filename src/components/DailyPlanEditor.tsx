@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Save, Music, Book, MessageCircle, Target, Plus, X, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -35,7 +34,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { familyMembers } = useFamilyMembers();
+  const { members } = useFamilyMembers();
 
   useEffect(() => {
     if (initialData) {
@@ -68,24 +67,24 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
     
     setLoading(true);
     try {
-      const dataToSave = {
-        user_id: user.id,
-        date,
-        opening_song: planData.openingSong,
-        bible_reading: planData.bibleReading,
-        theme: planData.theme,
-        discussion_questions: planData.discussionQuestions.filter(q => q.trim() !== ''),
-        application: planData.application,
-        closing_song: planData.closingSong,
-        reflection_notes: planData.reflectionNotes,
-        family_members_present: planData.familyMembers.split(',').map(m => m.trim()).filter(m => m !== ''),
-        leader_id: planData.leaderId || null,
-        assistant_id: planData.assistantId || null
-      };
-
       const { error } = await supabase
         .from('daily_worship_entries')
-        .upsert([dataToSave], { onConflict: 'user_id,date' });
+        .upsert({
+          user_id: user.id,
+          date: date,
+          opening_song: planData.openingSong,
+          bible_reading: planData.bibleReading,
+          theme: planData.theme,
+          discussion_questions: planData.discussionQuestions.filter(q => q.trim() !== ''),
+          application: planData.application,
+          closing_song: planData.closingSong,
+          reflection_notes: planData.reflectionNotes,
+          family_members_present: planData.familyMembers.split(',').map(m => m.trim()).filter(m => m !== ''),
+          leader_id: planData.leaderId || null,
+          assistant_id: planData.assistantId || null
+        } as any, { 
+          onConflict: 'user_id,date' 
+        });
 
       if (error) throw error;
 
@@ -160,7 +159,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Family Responsibilities */}
-        {familyMembers.length > 0 && (
+        {members.length > 0 && (
           <Card className="lg:col-span-2">
             <div className="p-4">
               <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
@@ -176,7 +175,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">No leader assigned</SelectItem>
-                      {familyMembers.map((member) => (
+                      {members.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name}
                         </SelectItem>
@@ -192,7 +191,7 @@ export const DailyPlanEditor: React.FC<DailyPlanEditorProps> = ({ date, onBack, 
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">No assistant assigned</SelectItem>
-                      {familyMembers.map((member) => (
+                      {members.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.name}
                         </SelectItem>
