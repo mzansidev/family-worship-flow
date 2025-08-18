@@ -87,22 +87,26 @@ export const DailyWorshipPlan = () => {
     if (!user) return;
 
     const today = new Date().toISOString().split('T')[0];
-    
+    console.log('[DailyWorshipPlan] fetchTodaysPlan for', { userId: user.id, today });
+
     try {
-      // Check if there's already a plan for today
-      const { data: existingPlan, error } = await supabase
+      // Fetch the most recent entry (avoid maybeSingle to prevent PGRST116)
+      const { data: plans, error } = await supabase
         .from('daily_worship_entries')
         .select('*')
         .eq('user_id', user.id as any)
         .eq('date', today as any)
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(1);
 
       if (error) {
-        console.error('Error fetching plan:', error);
-        return;
+        console.error('Error fetching plan list:', error);
       }
 
+      const existingPlan = plans && plans.length > 0 ? plans[0] : null;
+
       if (existingPlan && typeof existingPlan === 'object' && 'opening_song' in existingPlan) {
+        console.log('[DailyWorshipPlan] using existing plan id', (existingPlan as any).id);
         setCurrentPlan({
           openingSong: (existingPlan as any).opening_song || '',
           bibleReading: (existingPlan as any).bible_reading || '',
@@ -115,11 +119,11 @@ export const DailyWorshipPlan = () => {
         return;
       }
 
-      // Generate random plan
+      // Generate random plan (no existing plan today)
       const randomPlan = generateRandomPlan();
       setCurrentPlan(randomPlan);
-      
-      // Save to database (no onConflict; we checked existence above)
+
+      // Save to database
       const { error: insertErr } = await supabase
         .from('daily_worship_entries')
         .insert({
@@ -135,10 +139,15 @@ export const DailyWorshipPlan = () => {
         } as any);
 
       if (insertErr) {
-        console.error('Error inserting today\'s plan:', insertErr);
+        console.error("Error inserting today's plan:", insertErr);
       }
     } catch (error) {
       console.error('Error in fetchTodaysPlan:', error);
+      // As a safety, ensure UI doesn't get stuck on loading
+      if (!currentPlan) {
+        const fallbackPlan = generateRandomPlan();
+        setCurrentPlan(fallbackPlan);
+      }
     }
   };
 
@@ -187,15 +196,17 @@ export const DailyWorshipPlan = () => {
     if (user) {
       const today = new Date().toISOString().split('T')[0];
 
-      // Check if an entry exists for today, then update or insert.
-      const { data: existing, error: existErr } = await supabase
+      // Safely get the latest entry for today to update or insert
+      const { data: existingRows, error: existErr } = await supabase
         .from('daily_worship_entries')
         .select('id')
         .eq('user_id', user.id as any)
         .eq('date', today as any)
-        .maybeSingle();
-      
-      if (!existErr && existing) {
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!existErr && existingRows && existingRows.length > 0) {
+        const existingId = (existingRows[0] as any).id;
         await supabase
           .from('daily_worship_entries')
           .update({
@@ -204,9 +215,10 @@ export const DailyWorshipPlan = () => {
             discussion_questions: newPlan.discussion,
             application: newPlan.application,
             closing_song: newPlan.closingSong,
-            theme: newPlan.theme
+            theme: newPlan.theme,
+            updated_at: new Date().toISOString()
           } as any)
-          .eq('id', (existing as any).id);
+          .eq('id', existingId);
       } else {
         await supabase
           .from('daily_worship_entries')
