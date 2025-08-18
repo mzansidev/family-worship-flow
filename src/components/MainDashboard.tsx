@@ -10,8 +10,9 @@ import { AuthPage } from './AuthPage';
 import { useAuth } from '@/hooks/useAuth';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { AboutUs } from './AboutUs';
 
-type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth';
+type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth' | 'about';
 
 export const MainDashboard = () => {
   const [activeFeature, setActiveFeature] = useState<ActiveFeature>('dashboard');
@@ -48,8 +49,10 @@ export const MainDashboard = () => {
         return <PrinciplesLibrary />;
       case 'profile':
         return <Dashboard />;
+      case 'about':
+        return <AboutUs />;
       default:
-        return <FeatureTiles />;
+        return <FeatureTiles onNavigate={(feature) => setActiveFeature(feature)} />;
     }
   };
 

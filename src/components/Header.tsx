@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from './ThemeToggle';
 
-type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth';
+type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth' | 'about';
 
 interface HeaderProps {
   activeFeature: ActiveFeature;
@@ -40,6 +40,7 @@ export const Header: React.FC<HeaderProps> = ({ activeFeature, onNavigate, isLog
     { key: 'weekly' as const, label: 'Weekly', icon: BookOpen },
     { key: 'principles' as const, label: 'Principles', icon: BookOpen },
     { key: 'profile' as const, label: 'Profile', icon: User },
+    { key: 'about' as const, label: 'About', icon: BookOpen },
   ];
 
   return (
