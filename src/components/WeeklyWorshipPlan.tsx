@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Calendar, Book, Heart, Clock, Play, Pause, CheckCircle, MessageCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -36,6 +35,10 @@ export const WeeklyWorshipPlan = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Helpers to normalize study_type between UI and DB
+  const toDbStudyType = (val: string) => (val === 'bible-book' ? 'bible_book' : val);
+  const fromDbStudyType = (val: string) => (val === 'bible_book' ? 'bible-book' : val);
+
   const fetchCurrentPlan = async () => {
     if (!user?.id) return;
     
@@ -54,11 +57,14 @@ export const WeeklyWorshipPlan = () => {
       }
 
       if (plan) {
+        console.log('[WeeklyWorshipPlan] fetched plan:', plan);
         setCurrentPlan(plan);
-        setStudyType(plan.study_type || 'bible-book');
-        if (plan.study_type === 'bible-book') {
+        const normalized = fromDbStudyType(plan.study_type || 'bible_book');
+        // Keep UI state using hyphen variant
+        setStudyType(normalized || 'bible-book');
+        if (normalized === 'bible-book') {
           setSelectedBook(plan.book_name || 'Genesis');
-        } else if (plan.study_type === 'topical') {
+        } else if (normalized === 'topical') {
           setSelectedTopic(plan.topic_name || 'Prayer and Faith');
         }
       }
@@ -81,7 +87,7 @@ export const WeeklyWorshipPlan = () => {
       // Create new plan with proper data structure
       const planData = {
         user_id: user.id,
-        study_type: studyType,
+        study_type: toDbStudyType(studyType), // normalize for DB check constraint
         plan_type: 'weekly',
         book_name: studyType === 'bible-book' ? selectedBook : null,
         topic_name: studyType === 'topical' ? selectedTopic : null,
@@ -108,7 +114,7 @@ export const WeeklyWorshipPlan = () => {
         title: "Success",
         description: "New weekly worship plan created!"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating plan:', error);
       toast({
         title: "Error",
@@ -153,7 +159,10 @@ export const WeeklyWorshipPlan = () => {
   const generateWeeklyContent = (week: number) => {
     if (!currentPlan) return null;
 
-    if (currentPlan.study_type === 'bible-book') {
+    const st = currentPlan.study_type;
+    const isBibleBook = st === 'bible_book' || st === 'bible-book';
+
+    if (isBibleBook) {
       const book = currentPlan.book_name;
       return {
         title: `${book} - Week ${week}`,
