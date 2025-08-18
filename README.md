@@ -1,4 +1,4 @@
-# Welcome to your Family Pulse project
+# Welcome to Family Pulse project
 
 ## Project info
 
