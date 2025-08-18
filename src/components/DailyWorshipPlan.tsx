@@ -119,12 +119,12 @@ export const DailyWorshipPlan = () => {
       const randomPlan = generateRandomPlan();
       setCurrentPlan(randomPlan);
       
-      // Save to database
-      await supabase
+      // Save to database (no onConflict; we checked existence above)
+      const { error: insertErr } = await supabase
         .from('daily_worship_entries')
-        .upsert({
+        .insert({
           user_id: user.id,
-          date: today,
+          date: today as any,
           opening_song: randomPlan.openingSong,
           bible_reading: randomPlan.bibleReading,
           discussion_questions: randomPlan.discussion,
@@ -132,9 +132,11 @@ export const DailyWorshipPlan = () => {
           closing_song: randomPlan.closingSong,
           theme: randomPlan.theme,
           is_completed: false
-        } as any, { 
-          onConflict: 'user_id,date' 
-        });
+        } as any);
+
+      if (insertErr) {
+        console.error('Error inserting today\'s plan:', insertErr);
+      }
     } catch (error) {
       console.error('Error in fetchTodaysPlan:', error);
     }
@@ -184,21 +186,41 @@ export const DailyWorshipPlan = () => {
 
     if (user) {
       const today = new Date().toISOString().split('T')[0];
-      
-      await supabase
+
+      // Check if an entry exists for today, then update or insert.
+      const { data: existing, error: existErr } = await supabase
         .from('daily_worship_entries')
-        .upsert({
-          user_id: user.id,
-          date: today,
-          opening_song: newPlan.openingSong,
-          bible_reading: newPlan.bibleReading,
-          discussion_questions: newPlan.discussion,
-          application: newPlan.application,
-          closing_song: newPlan.closingSong,
-          theme: newPlan.theme
-        } as any, { 
-          onConflict: 'user_id,date' 
-        });
+        .select('id')
+        .eq('user_id', user.id as any)
+        .eq('date', today as any)
+        .maybeSingle();
+      
+      if (!existErr && existing) {
+        await supabase
+          .from('daily_worship_entries')
+          .update({
+            opening_song: newPlan.openingSong,
+            bible_reading: newPlan.bibleReading,
+            discussion_questions: newPlan.discussion,
+            application: newPlan.application,
+            closing_song: newPlan.closingSong,
+            theme: newPlan.theme
+          } as any)
+          .eq('id', (existing as any).id);
+      } else {
+        await supabase
+          .from('daily_worship_entries')
+          .insert({
+            user_id: user.id,
+            date: today as any,
+            opening_song: newPlan.openingSong,
+            bible_reading: newPlan.bibleReading,
+            discussion_questions: newPlan.discussion,
+            application: newPlan.application,
+            closing_song: newPlan.closingSong,
+            theme: newPlan.theme
+          } as any);
+      }
     }
     
     setLoading(false);
@@ -207,15 +229,30 @@ export const DailyWorshipPlan = () => {
   const updateUserPreferences = async () => {
     if (!user) return;
 
-    await supabase
+    // Replace upsert with explicit check-then-update/insert to avoid onConflict errors
+    const { data: existing, error: existErr } = await supabase
       .from('user_preferences')
-      .upsert({
-        user_id: user.id,
-        daily_plan_source: planSource,
-        default_age_range: ageRange
-      } as any, { 
-        onConflict: 'user_id' 
-      });
+      .select('id')
+      .eq('user_id', user.id as any)
+      .maybeSingle();
+
+    if (!existErr && existing) {
+      await supabase
+        .from('user_preferences')
+        .update({
+          daily_plan_source: planSource,
+          default_age_range: ageRange
+        } as any)
+        .eq('id', (existing as any).id);
+    } else {
+      await supabase
+        .from('user_preferences')
+        .insert({
+          user_id: user.id,
+          daily_plan_source: planSource,
+          default_age_range: ageRange
+        } as any);
+    }
   };
 
   useEffect(() => {
@@ -356,7 +393,7 @@ export const DailyWorshipPlan = () => {
           color="bg-orange-50 border-orange-200"
         >
           <ol className="space-y-2">
-            {currentPlan.discussion.map((question: string, index: number) => (
+            {Array.isArray(currentPlan.discussion) && currentPlan.discussion.map((question: string, index: number) => (
               <li key={index} className="flex">
                 <span className="bg-orange-200 text-orange-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-3 mt-0.5 flex-shrink-0">
                   {index + 1}

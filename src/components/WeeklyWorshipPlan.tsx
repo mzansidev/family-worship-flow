@@ -35,9 +35,9 @@ export const WeeklyWorshipPlan = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Helpers to normalize study_type between UI and DB
-  const toDbStudyType = (val: string) => (val === 'bible-book' ? 'bible_book' : val);
-  const fromDbStudyType = (val: string) => (val === 'bible_book' ? 'bible-book' : val);
+  // Robust normalization helpers (DB expects 'bible_book' or 'topical')
+  const toDbStudyType = (val: string) => (val === 'topical' ? 'topical' : 'bible_book');
+  const fromDbStudyType = (val: string) => (val === 'topical' ? 'topical' : 'bible-book');
 
   const fetchCurrentPlan = async () => {
     if (!user?.id) return;
@@ -81,25 +81,29 @@ export const WeeklyWorshipPlan = () => {
       await supabase
         .from('worship_plans')
         .update({ is_active: false })
-        .eq('user_id', user.id)
+        .eq('user_id', user!.id)
         .eq('plan_type', 'weekly');
+
+      const normalizedStudyType = toDbStudyType(studyType);
 
       // Create new plan with proper data structure
       const planData = {
-        user_id: user.id,
-        study_type: toDbStudyType(studyType), // normalize for DB check constraint
+        user_id: user!.id,
+        study_type: normalizedStudyType, // only 'bible_book' or 'topical'
         plan_type: 'weekly',
-        book_name: studyType === 'bible-book' ? selectedBook : null,
-        topic_name: studyType === 'topical' ? selectedTopic : null,
+        book_name: normalizedStudyType === 'bible_book' ? selectedBook : null,
+        topic_name: normalizedStudyType === 'topical' ? selectedTopic : null,
         current_week: 1,
         current_chapter: 1,
         is_active: true,
         start_date: new Date().toISOString().split('T')[0]
       };
 
+      console.log('[WeeklyWorshipPlan] creating plan with:', planData);
+
       const { data, error } = await supabase
         .from('worship_plans')
-        .insert(planData)
+        .insert(planData as any)
         .select()
         .single();
 
@@ -118,7 +122,7 @@ export const WeeklyWorshipPlan = () => {
       console.error('Error creating plan:', error);
       toast({
         title: "Error",
-        description: `Failed to create worship plan: ${error.message}`,
+        description: `Failed to create worship plan: ${error.message || 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {
@@ -135,7 +139,7 @@ export const WeeklyWorshipPlan = () => {
         .update({ 
           current_week: weekNumber,
           updated_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', currentPlan.id);
 
       if (error) throw error;
@@ -429,7 +433,7 @@ export const WeeklyWorshipPlan = () => {
             color="bg-green-50 border-green-200"
           >
             <ol className="space-y-2">
-              {weekContent.discussion.map((question: string, index: number) => (
+              {Array.isArray(weekContent.discussion) && weekContent.discussion.map((question: string, index: number) => (
                 <li key={index} className="flex">
                   <span className="bg-green-200 text-green-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium mr-3 mt-0.5 flex-shrink-0">
                     {index + 1}
