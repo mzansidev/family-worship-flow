@@ -7,7 +7,13 @@ import { WeeklyWorshipPlan } from './WeeklyWorshipPlan';
 import { PrinciplesLibrary } from './PrinciplesLibrary';
 import { Dashboard } from './Dashboard';
 
-export const FeatureTiles = () => {
+type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth' | 'about';
+
+interface FeatureTilesProps {
+  onNavigate?: (feature: ActiveFeature) => void;
+}
+
+export const FeatureTiles: React.FC<FeatureTilesProps> = ({ onNavigate }) => {
   const [activeFeature, setActiveFeature] = useState<string | null>(null);
 
   const features = [
@@ -45,7 +51,17 @@ export const FeatureTiles = () => {
     }
   ];
 
-  if (activeFeature) {
+  const handleFeatureClick = (featureId: string) => {
+    if (onNavigate) {
+      // Use the parent's navigation handler to update the main dashboard state
+      onNavigate(featureId as ActiveFeature);
+    } else {
+      // Fallback to local state if no parent handler
+      setActiveFeature(featureId);
+    }
+  };
+
+  if (activeFeature && !onNavigate) {
     const feature = features.find(f => f.id === activeFeature);
     if (feature) {
       const Component = feature.component;
@@ -71,7 +87,7 @@ export const FeatureTiles = () => {
           <Card
             key={feature.id}
             className="group cursor-pointer border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden"
-            onClick={() => setActiveFeature(feature.id)}
+            onClick={() => handleFeatureClick(feature.id)}
           >
             <div className={`bg-gradient-to-br ${feature.color} p-6 text-white`}>
               <div className="flex items-start justify-between mb-4">
