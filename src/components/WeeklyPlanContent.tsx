@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Book, Heart, MessageCircle, Play, Calendar } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -109,8 +110,8 @@ export const WeeklyPlanContent: React.FC<WeeklyPlanContentProps> = ({ plan, sele
   if (selectedDay === -1) {
     return (
       <Card className="p-6 text-center">
-        <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-        <p className="text-gray-600">Select a day from the calendar to view the worship plan content</p>
+        <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+        <p className="text-muted-foreground">Select a day from the calendar to view the worship plan content</p>
       </Card>
     );
   }
