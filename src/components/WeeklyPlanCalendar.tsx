@@ -52,16 +52,17 @@ export const WeeklyPlanCalendar: React.FC<WeeklyPlanCalendarProps> = ({
       ...assignments,
       [dayIndex]: {
         ...assignments[dayIndex],
-        [role]: memberId
+        [role]: memberId === 'unassigned' ? '' : memberId
       }
     };
     setAssignments(newAssignments);
-    onUpdateAssignment(dayIndex, role, memberId);
+    onUpdateAssignment(dayIndex, role, memberId === 'unassigned' ? '' : memberId);
   };
 
   const getMemberName = (memberId: string) => {
+    if (!memberId) return null;
     const member = members.find(m => m.id === memberId);
-    return member ? member.name : 'Unassigned';
+    return member ? member.name : null;
   };
 
   return (
@@ -93,7 +94,7 @@ export const WeeklyPlanCalendar: React.FC<WeeklyPlanCalendarProps> = ({
                 <div className="space-y-2">
                   {WORSHIP_ROLES.map(role => {
                     const assignedMemberId = dayAssignments[role.key];
-                    const assignedName = assignedMemberId ? getMemberName(assignedMemberId) : null;
+                    const assignedName = getMemberName(assignedMemberId);
                     
                     return (
                       <div key={role.key} className="flex items-center justify-between text-xs">
@@ -133,14 +134,14 @@ export const WeeklyPlanCalendar: React.FC<WeeklyPlanCalendarProps> = ({
                   {role.label}
                 </label>
                 <Select
-                  value={assignments[selectedDay]?.[role.key] || ''}
+                  value={assignments[selectedDay]?.[role.key] || 'unassigned'}
                   onValueChange={(value) => handleAssignmentChange(selectedDay, role.key, value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select family member" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Unassigned</SelectItem>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
                     {members.map(member => (
                       <SelectItem key={member.id} value={member.id}>
                         {member.name} ({member.role})
