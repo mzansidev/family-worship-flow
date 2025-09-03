@@ -87,7 +87,7 @@ export const DailyWorshipPlan = () => {
     if (!user) return;
 
     const today = new Date().toISOString().split('T')[0];
-    console.log('[DailyWorshipPlan] fetchTodaysPlan for', { userId: user.id, today });
+    console.log('[DailyWorshipPlan] fetchTodaysPlan for', { userId: user.id, today, planSource });
 
     try {
       // Fetch the most recent entry (avoid maybeSingle to prevent PGRST116)
@@ -119,9 +119,15 @@ export const DailyWorshipPlan = () => {
         return;
       }
 
-      // Generate random plan (no existing plan today)
-      const randomPlan = generateRandomPlan();
-      setCurrentPlan(randomPlan);
+      // Generate plan based on source selection
+      let newPlan;
+      if (planSource === 'weekly') {
+        newPlan = await generateWeeklyPlan();
+      } else {
+        newPlan = generateRandomPlan();
+      }
+      
+      setCurrentPlan(newPlan);
 
       // Save to database
       const { error: insertErr } = await supabase
@@ -129,12 +135,12 @@ export const DailyWorshipPlan = () => {
         .insert({
           user_id: user.id,
           date: today as any,
-          opening_song: randomPlan.openingSong,
-          bible_reading: randomPlan.bibleReading,
-          discussion_questions: randomPlan.discussion,
-          application: randomPlan.application,
-          closing_song: randomPlan.closingSong,
-          theme: randomPlan.theme,
+          opening_song: newPlan.openingSong,
+          bible_reading: newPlan.bibleReading,
+          discussion_questions: newPlan.discussion,
+          application: newPlan.application,
+          closing_song: newPlan.closingSong,
+          theme: newPlan.theme,
           is_completed: false
         } as any);
 
@@ -149,6 +155,83 @@ export const DailyWorshipPlan = () => {
         setCurrentPlan(fallbackPlan);
       }
     }
+  };
+
+  const generateWeeklyPlan = async () => {
+    if (!user) return generateRandomPlan();
+
+    try {
+      // Get active weekly plan
+      const { data: weeklyPlan, error } = await supabase
+        .from('worship_plans')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .eq('plan_type', 'weekly')
+        .maybeSingle();
+
+      if (error || !weeklyPlan) {
+        console.log('No active weekly plan found, using random');
+        return generateRandomPlan();
+      }
+
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+      const mondayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert to Monday=0 index
+
+      if (weeklyPlan.study_type === 'book') {
+        const chapter = weeklyPlan.current_chapter;
+        const versesPerDay = 5;
+        const startVerse = mondayIndex * versesPerDay + 1;
+        const endVerse = startVerse + versesPerDay - 1;
+
+        return {
+          openingSong: 'Be Thou My Vision (SDAH #547)',
+          bibleReading: `${weeklyPlan.book_name} ${chapter}:${startVerse}-${endVerse}`,
+          discussion: generateDiscussionQuestions(`${weeklyPlan.book_name} Study`, ageRange),
+          application: `This week, reflect on the lessons from ${weeklyPlan.book_name} chapter ${chapter}. Consider how these verses apply to your daily walk with God.`,
+          closingSong: 'How Great Thou Art (SDAH #86)',
+          theme: `${weeklyPlan.book_name} Chapter ${chapter} - Day ${mondayIndex + 1}`
+        };
+      } else {
+        return {
+          openingSong: 'Amazing Grace (SDAH #108)',
+          bibleReading: getTopicalReading(weeklyPlan.topic_name, mondayIndex),
+          discussion: generateDiscussionQuestions(weeklyPlan.topic_name, ageRange),
+          application: `Continue exploring ${weeklyPlan.topic_name}. Look for ways to apply today's insights throughout your week.`,
+          closingSong: 'What a Friend We Have in Jesus (SDAH #124)',
+          theme: `${weeklyPlan.topic_name} - Day ${mondayIndex + 1}`
+        };
+      }
+    } catch (error) {
+      console.error('Error generating weekly plan:', error);
+      return generateRandomPlan();
+    }
+  };
+
+  const getTopicalReading = (topic: string, dayIndex: number) => {
+    const readings: { [key: string]: string[] } = {
+      'Prayer and Faith': [
+        'Matthew 6:5-15 - The Lord\'s Prayer',
+        'James 5:13-18 - Prayer for Healing',
+        'Luke 18:1-8 - Persistent Prayer',
+        '1 Thessalonians 5:16-18 - Pray Without Ceasing',
+        'Matthew 21:22 - Faith in Prayer',
+        'Philippians 4:6-7 - Prayer and Peace',
+        '1 John 5:14-15 - Confidence in Prayer'
+      ],
+      'God\'s Love and Grace': [
+        'John 3:16-21 - God\'s Love for the World',
+        'Romans 5:6-11 - Grace While We Were Sinners',
+        'Ephesians 2:4-10 - Saved by Grace',
+        '1 John 4:7-21 - God is Love',
+        'Romans 8:35-39 - Nothing Separates Us',
+        'Titus 3:4-7 - God\'s Kindness and Love',
+        'Psalm 103:8-14 - God\'s Compassion'
+      ]
+    };
+    
+    return readings[topic]?.[dayIndex] || `${topic} study - Day ${dayIndex + 1}`;
   };
 
   const handleMarkCompleted = async () => {

@@ -99,6 +99,63 @@ export const WeeklyWorshipPlan = () => {
     }
   };
 
+  const advanceWeeklyPlan = async () => {
+    if (!currentPlan) return;
+
+    try {
+      const nextWeek = currentPlan.current_week + 1;
+      const nextChapter = currentPlan.study_type === 'book' ? currentPlan.current_chapter + 1 : currentPlan.current_chapter;
+
+      const { error } = await supabase
+        .from('worship_plans')
+        .update({
+          current_week: nextWeek,
+          current_chapter: nextChapter,
+          updated_at: new Date().toISOString()
+        } as any)
+        .eq('id', currentPlan.id);
+
+      if (error) {
+        console.error('Error advancing plan:', error);
+        return;
+      }
+
+      // Update local state
+      setCurrentPlan({
+        ...currentPlan,
+        current_week: nextWeek,
+        current_chapter: nextChapter
+      });
+
+      toast({
+        title: "Plan Advanced",
+        description: `Moved to week ${nextWeek}${currentPlan.study_type === 'book' ? `, chapter ${nextChapter}` : ''}`
+      });
+    } catch (error) {
+      console.error('Error advancing plan:', error);
+      toast({
+        title: "Error",
+        description: "Failed to advance plan",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const checkAndAdvanceWeek = async () => {
+    if (!currentPlan || !user?.id) return;
+
+    const today = new Date();
+    const startDate = new Date(currentPlan.start_date);
+    
+    // Calculate weeks since start (assuming Monday start)
+    const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const weeksSinceStart = Math.floor(daysSinceStart / 7) + 1;
+
+    if (weeksSinceStart > currentPlan.current_week) {
+      await advanceWeeklyPlan();
+    }
+  };
+
   const handleUpdateAssignment = async (day: number, role: string, memberId: string) => {
     // For now, just log the assignment. In a full implementation,
     // you might want to store these in a separate assignments table
@@ -138,7 +195,10 @@ export const WeeklyWorshipPlan = () => {
 
   useEffect(() => {
     if (user?.id) {
-      fetchCurrentPlan();
+      fetchCurrentPlan().then(() => {
+        // Check if we need to advance the week after loading
+        checkAndAdvanceWeek();
+      });
     }
   }, [user?.id]);
 
@@ -172,14 +232,25 @@ export const WeeklyWorshipPlan = () => {
           </p>
         </div>
         
-        <Button 
-          onClick={resetPlan}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <RotateCcw className="w-4 h-4" />
-          Start New Plan
-        </Button>
+        <div className="flex items-center justify-between">
+          <Button 
+            onClick={advanceWeeklyPlan}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Next Week
+          </Button>
+          
+          <Button 
+            onClick={resetPlan}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Start New Plan
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

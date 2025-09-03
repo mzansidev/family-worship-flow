@@ -19,17 +19,17 @@ export const WeeklyPlanContent: React.FC<WeeklyPlanContentProps> = ({ plan, sele
 
     if (isBibleBook) {
       const book = plan.book_name;
-      const chapter = Math.floor(dayIndex / 7) + 1; // Rough chapter progression
-      const versesPerDay = 10; // Manageable for families with children
-      const startVerse = (dayIndex % 7) * 5 + 1;
-      const endVerse = startVerse + 4;
+      const currentChapter = plan.current_chapter || 1;
+      const versesPerDay = 5; // Manageable for families with children
+      const startVerse = dayIndex * versesPerDay + 1;
+      const endVerse = startVerse + versesPerDay - 1;
 
       return {
-        title: `${book} Chapter ${chapter}`,
-        reading: `${book} ${chapter}:${startVerse}-${endVerse}`,
-        theme: `Key lessons from ${book} Chapter ${chapter}`,
+        title: `${book} Chapter ${currentChapter}`,
+        reading: `${book} ${currentChapter}:${startVerse}-${endVerse}`,
+        theme: `Key lessons from ${book} Chapter ${currentChapter}`,
         discussion: [
-          `What stands out to you in ${book} ${chapter}:${startVerse}-${endVerse}?`,
+          `What stands out to you in ${book} ${currentChapter}:${startVerse}-${endVerse}?`,
           'How can we apply this passage in our daily lives?',
           'What does this teach us about God\'s character?',
           'How can we pray about what we\'ve learned today?'
