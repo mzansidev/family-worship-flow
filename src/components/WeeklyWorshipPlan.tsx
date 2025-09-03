@@ -232,7 +232,7 @@ export const WeeklyWorshipPlan = () => {
           </p>
         </div>
         
-        <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <Button 
             onClick={advanceWeeklyPlan}
             variant="outline"
@@ -248,7 +248,7 @@ export const WeeklyWorshipPlan = () => {
             className="flex items-center gap-2"
           >
             <RotateCcw className="w-4 h-4" />
-            Start New Plan
+            Change Plan
           </Button>
         </div>
       </div>

@@ -18,8 +18,13 @@ const BIBLE_BOOKS = [
 ];
 
 const TOPICAL_THEMES = [
-  'Prayer and Faith', 'God\'s Love and Grace', 'Christian Character', 'Family Values',
-  'Stewardship', 'Second Coming', 'Health and Wellness', 'Service and Mission'
+  'The Trinity', 'Salvation by Grace', 'The Sabbath', 'Second Coming of Christ',
+  'Creation', 'The Law of God', 'Stewardship', 'Christian Behavior',
+  'Marriage and Family', 'Death and Resurrection', 'The Heavenly Sanctuary',
+  'The Remnant Church', 'Spiritual Gifts', 'The Gift of Prophecy',
+  'Baptism', 'The Lord\'s Supper', 'Prayer and Faith', 'Growing in Christ',
+  'Unity in the Body of Christ', 'The Great Controversy', 'The New Earth',
+  'The Millennium', 'Health and Wellness', 'Service and Mission'
 ];
 
 interface WeeklyPlanSetupProps {
