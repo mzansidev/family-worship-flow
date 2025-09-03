@@ -91,7 +91,7 @@ export const DailyWorshipPlan = () => {
 
     try {
       // Fetch the most recent entry (avoid maybeSingle to prevent PGRST116)
-      const { data: plans, error } = await supabase
+      const { data: plans } = await supabase
         .from('daily_worship_entries')
         .select('*')
         .eq('user_id', user.id as any)
@@ -99,30 +99,72 @@ export const DailyWorshipPlan = () => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (error) {
-        console.error('Error fetching plan list:', error);
-      }
-
       const existingPlan = plans && plans.length > 0 ? plans[0] : null;
 
-      if (existingPlan && typeof existingPlan === 'object' && 'opening_song' in existingPlan) {
-        console.log('[DailyWorshipPlan] using existing plan id', (existingPlan as any).id);
-        setCurrentPlan({
-          openingSong: (existingPlan as any).opening_song || '',
-          bibleReading: (existingPlan as any).bible_reading || '',
-          discussion: (existingPlan as any).discussion_questions || [],
-          application: (existingPlan as any).application || '',
-          closingSong: (existingPlan as any).closing_song || '',
-          theme: (existingPlan as any).theme || ''
-        });
-        setIsCompleted((existingPlan as any).is_completed || false);
-        return;
+      if (existingPlan && typeof existingPlan === 'object') {
+        if (planSource === 'random') {
+          const randomDerived = generateRandomPlan();
+          await supabase
+            .from('daily_worship_entries')
+            .update({
+              opening_song: randomDerived.openingSong,
+              bible_reading: randomDerived.bibleReading,
+              discussion_questions: randomDerived.discussion,
+              application: randomDerived.application,
+              closing_song: randomDerived.closingSong,
+              theme: randomDerived.theme,
+              worship_plan_id: null,
+              updated_at: new Date().toISOString()
+            } as any)
+            .eq('id', (existingPlan as any).id);
+          setCurrentPlan(randomDerived);
+          setIsCompleted((existingPlan as any).is_completed || false);
+          return;
+        } else {
+          const { data: weeklyPlan } = await supabase
+            .from('worship_plans')
+            .select('id, study_type, book_name, topic_name, current_chapter')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .eq('plan_type', 'weekly')
+            .maybeSingle();
+
+          const weeklyDerived = await generateWeeklyPlan();
+          const linkId = weeklyPlan ? (weeklyPlan as any).id : null;
+
+          await supabase
+            .from('daily_worship_entries')
+            .update({
+              opening_song: weeklyDerived.openingSong,
+              bible_reading: weeklyDerived.bibleReading,
+              discussion_questions: weeklyDerived.discussion,
+              application: weeklyDerived.application,
+              closing_song: weeklyDerived.closingSong,
+              theme: weeklyDerived.theme,
+              worship_plan_id: linkId,
+              updated_at: new Date().toISOString()
+            } as any)
+            .eq('id', (existingPlan as any).id);
+          setCurrentPlan(weeklyDerived);
+          setIsCompleted((existingPlan as any).is_completed || false);
+          return;
+        }
       }
 
-      // Generate plan based on source selection
+      // No existing entry: generate plan based on source selection
       let newPlan;
+      let worshipPlanId: string | null = null;
       if (planSource === 'weekly') {
+        const { data: weeklyPlan } = await supabase
+          .from('worship_plans')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .eq('plan_type', 'weekly')
+          .maybeSingle();
+
         newPlan = await generateWeeklyPlan();
+        worshipPlanId = weeklyPlan ? (weeklyPlan as any).id : null;
       } else {
         newPlan = generateRandomPlan();
       }
@@ -141,6 +183,7 @@ export const DailyWorshipPlan = () => {
           application: newPlan.application,
           closing_song: newPlan.closingSong,
           theme: newPlan.theme,
+          worship_plan_id: worshipPlanId,
           is_completed: false
         } as any);
 
@@ -273,14 +316,32 @@ export const DailyWorshipPlan = () => {
 
   const handleGenerateNew = async () => {
     setLoading(true);
-    const newPlan = generateRandomPlan();
+
+    let newPlan;
+    let worshipPlanId: string | null = null;
+    if (planSource === 'weekly') {
+      newPlan = await generateWeeklyPlan();
+      if (user) {
+        const { data: weeklyPlan } = await supabase
+          .from('worship_plans')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .eq('plan_type', 'weekly')
+          .maybeSingle();
+        worshipPlanId = weeklyPlan ? (weeklyPlan as any).id : null;
+      }
+    } else {
+      newPlan = generateRandomPlan();
+    }
+
     setCurrentPlan(newPlan);
 
     if (user) {
       const today = new Date().toISOString().split('T')[0];
 
       // Safely get the latest entry for today to update or insert
-      const { data: existingRows, error: existErr } = await supabase
+      const { data: existingRows } = await supabase
         .from('daily_worship_entries')
         .select('id')
         .eq('user_id', user.id as any)
@@ -288,7 +349,7 @@ export const DailyWorshipPlan = () => {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (!existErr && existingRows && existingRows.length > 0) {
+      if (existingRows && existingRows.length > 0) {
         const existingId = (existingRows[0] as any).id;
         await supabase
           .from('daily_worship_entries')
@@ -299,6 +360,7 @@ export const DailyWorshipPlan = () => {
             application: newPlan.application,
             closing_song: newPlan.closingSong,
             theme: newPlan.theme,
+            worship_plan_id: worshipPlanId,
             updated_at: new Date().toISOString()
           } as any)
           .eq('id', existingId);
@@ -313,7 +375,8 @@ export const DailyWorshipPlan = () => {
             discussion_questions: newPlan.discussion,
             application: newPlan.application,
             closing_song: newPlan.closingSong,
-            theme: newPlan.theme
+            theme: newPlan.theme,
+            worship_plan_id: worshipPlanId
           } as any);
       }
     }
@@ -350,23 +413,28 @@ export const DailyWorshipPlan = () => {
     }
   };
 
+  // Fetch today's plan whenever user or source changes
   useEffect(() => {
     if (user) {
       fetchTodaysPlan();
-      // Load user preferences
-      supabase
-        .from('user_preferences')
-        .select('*')
-        .eq('user_id', user.id as any)
-        .maybeSingle()
-        .then(({ data, error }) => {
-          if (!error && data && typeof data === 'object' && 'daily_plan_source' in data) {
-            setPlanSource(((data as any).daily_plan_source as PlanSource) || 'random');
-            setAgeRange((data as any).default_age_range || 'family');
-          }
-        });
     }
   }, [user, planSource]);
+
+  // Load user preferences only on user change (avoid overwriting user's selection on change)
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('user_preferences')
+      .select('*')
+      .eq('user_id', user.id as any)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!error && data && typeof data === 'object' && 'daily_plan_source' in data) {
+          setPlanSource(((data as any).daily_plan_source as PlanSource) || 'random');
+          setAgeRange((data as any).default_age_range || 'family');
+        }
+      });
+  }, [user]);
 
   useEffect(() => {
     if (user) {
