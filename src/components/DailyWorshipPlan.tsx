@@ -49,37 +49,96 @@ export const DailyWorshipPlan = () => {
     return [...baseQuestions, ...ageSpecific[age as keyof typeof ageSpecific]];
   };
 
+  const getRecommendedTime = (age: string) => {
+    const timeRecommendations = {
+      child: '10-15 minutes',
+      teen: '15-20 minutes', 
+      adult: '20-30 minutes',
+      family: '15-25 minutes'
+    };
+    return timeRecommendations[age as keyof typeof timeRecommendations] || '15-25 minutes';
+  };
+
+  const getTopicalSongs = (theme: string) => {
+    const songsByTheme: { [key: string]: string[] } = {
+      'Prayer and Faith': [
+        'What a Friend We Have in Jesus (SDAH #124)',
+        'Sweet Hour of Prayer (SDAH #478)',
+        'Jesus Loves Even Me (SDAH #167)',
+        'A Shelter in the Time of Storm (SDAH #528)'
+      ],
+      'God\'s Love': [
+        'Amazing Grace (SDAH #108)',
+        'Love Divine (SDAH #92)',
+        'Jesus Loves Me (SDAH #648)',
+        'God So Loved the World (SDAH #136)'
+      ],
+      'Creation': [
+        'This Is My Father\'s World (SDAH #61)',
+        'All Creatures of Our God and King (SDAH #2)',
+        'For the Beauty of the Earth (SDAH #60)',
+        'How Great Thou Art (SDAH #86)'
+      ],
+      'Praise and Worship': [
+        'Praise to the Lord (SDAH #1)',
+        'Holy, Holy, Holy (SDAH #3)',
+        'All People That on Earth Do Dwell (SDAH #16)',
+        'O Worship the Lord (SDAH #6)'
+      ],
+      'Faith and Trust': [
+        'A Mighty Fortress (SDAH #506)',
+        'All the Way (SDAH #516)',
+        'Be Thou My Vision (SDAH #547)',
+        'Faith Is the Victory (SDAH #592)'
+      ],
+      'Salvation': [
+        'Blessed Assurance (SDAH #462)',
+        'Rock of Ages (SDAH #114)',
+        'At Calvary (SDAH #115)',
+        'I Know That My Redeemer Lives (SDAH #120)'
+      ]
+    };
+
+    // Find matching theme or use general praise songs
+    const themeKey = Object.keys(songsByTheme).find(key => 
+      theme.toLowerCase().includes(key.toLowerCase()) || 
+      key.toLowerCase().includes(theme.toLowerCase())
+    );
+    
+    return songsByTheme[themeKey] || songsByTheme['Praise and Worship'];
+  };
+
   const generateRandomPlan = () => {
     const themes = [
       'God as Our Shepherd', 'Walking in Faith', 'God\'s Love for Us',
       'Trusting in Prayer', 'Following Jesus', 'God\'s Creation',
-      'Serving Others', 'God\'s Forgiveness', 'Growing in Faith'
+      'Serving Others', 'God\'s Forgiveness', 'Growing in Faith',
+      'Praise and Worship', 'Salvation by Grace', 'Christian Living'
     ];
     
-    const songs = [
-      'Be Thou My Vision (SDAH #547)', 'How Great Thou Art (SDAH #86)',
-      'Amazing Grace (SDAH #108)', 'Jesus Loves Me (SDAH #648)',
-      'This Is My Father\'s World (SDAH #61)', 'What a Friend We Have in Jesus (SDAH #124)'
-    ];
-
     const passages = [
       'Psalm 23:1-6 - The Lord is My Shepherd',
-      'John 3:16 - God\'s Love for the World',
-      'Philippians 4:13 - I Can Do All Things',
-      'Matthew 28:20 - Jesus Is Always With Us',
-      'Psalm 139:14 - Wonderfully Made',
-      'Romans 8:28 - All Things Work Together'
+      'John 3:16-17 - God\'s Love for the World', 
+      'Philippians 4:13 - I Can Do All Things Through Christ',
+      'Matthew 28:19-20 - The Great Commission',
+      'Psalm 139:13-16 - Fearfully and Wonderfully Made',
+      'Romans 8:28 - All Things Work Together for Good',
+      'Ephesians 2:8-9 - Saved by Grace Through Faith',
+      'Matthew 6:25-34 - Do Not Worry',
+      'Isaiah 40:28-31 - They That Wait Upon the Lord'
     ];
 
     const randomTheme = themes[Math.floor(Math.random() * themes.length)];
+    const themeSongs = getTopicalSongs(randomTheme);
     
     return {
-      openingSong: songs[Math.floor(Math.random() * songs.length)],
+      openingSong: themeSongs[Math.floor(Math.random() * themeSongs.length)],
       bibleReading: passages[Math.floor(Math.random() * passages.length)],
       discussion: generateDiscussionQuestions(randomTheme, ageRange),
       application: `This week, look for one way God has shown you ${randomTheme.toLowerCase()}. Share it with your family during your next worship time.`,
-      closingSong: songs[Math.floor(Math.random() * songs.length)],
-      theme: randomTheme
+      closingSong: themeSongs[Math.floor(Math.random() * themeSongs.length)],
+      theme: randomTheme,
+      recommendedTime: getRecommendedTime(ageRange)
     };
   };
 
@@ -90,10 +149,14 @@ export const DailyWorshipPlan = () => {
     console.log('[DailyWorshipPlan] fetchTodaysPlan for', { userId: user.id, today, planSource });
 
     try {
-      // Fetch the most recent entry (avoid maybeSingle to prevent PGRST116)
+      // Fetch the most recent entry with role assignment data
       const { data: plans } = await supabase
         .from('daily_worship_entries')
-        .select('*')
+        .select(`
+          *,
+          leader:family_members!leader_id(name),
+          assistant:family_members!assistant_id(name)
+        `)
         .eq('user_id', user.id as any)
         .eq('date', today as any)
         .order('created_at', { ascending: false })
@@ -117,7 +180,15 @@ export const DailyWorshipPlan = () => {
               updated_at: new Date().toISOString()
             } as any)
             .eq('id', (existingPlan as any).id);
-          setCurrentPlan(randomDerived);
+          const enrichedPlan = {
+            ...randomDerived,
+            leaderId: (existingPlan as any).leader_id,
+            assistantId: (existingPlan as any).assistant_id,
+            leaderName: (existingPlan as any).leader?.[0]?.name,
+            assistantName: (existingPlan as any).assistant?.[0]?.name,
+            familyMembersPresent: (existingPlan as any).family_members_present || []
+          };
+          setCurrentPlan(enrichedPlan);
           setIsCompleted((existingPlan as any).is_completed || false);
           return;
         } else {
@@ -145,7 +216,15 @@ export const DailyWorshipPlan = () => {
               updated_at: new Date().toISOString()
             } as any)
             .eq('id', (existingPlan as any).id);
-          setCurrentPlan(weeklyDerived);
+          const enrichedPlan = {
+            ...weeklyDerived,
+            leaderId: (existingPlan as any).leader_id,
+            assistantId: (existingPlan as any).assistant_id,
+            leaderName: (existingPlan as any).leader?.[0]?.name,
+            assistantName: (existingPlan as any).assistant?.[0]?.name,
+            familyMembersPresent: (existingPlan as any).family_members_present || []
+          };
+          setCurrentPlan(enrichedPlan);
           setIsCompleted((existingPlan as any).is_completed || false);
           return;
         }
@@ -227,23 +306,29 @@ export const DailyWorshipPlan = () => {
         const versesPerDay = 5;
         const startVerse = mondayIndex * versesPerDay + 1;
         const endVerse = startVerse + versesPerDay - 1;
+        const bookThemeSongs = getTopicalSongs('Faith and Trust');
 
         return {
-          openingSong: 'Be Thou My Vision (SDAH #547)',
-          bibleReading: `${weeklyPlan.book_name} ${chapter}:${startVerse}-${endVerse}`,
+          openingSong: bookThemeSongs[Math.floor(Math.random() * bookThemeSongs.length)],
+          bibleReading: `${weeklyPlan.book_name} ${chapter}:${startVerse}-${endVerse} - ${weeklyPlan.book_name} Chapter ${chapter}`,
           discussion: generateDiscussionQuestions(`${weeklyPlan.book_name} Study`, ageRange),
           application: `This week, reflect on the lessons from ${weeklyPlan.book_name} chapter ${chapter}. Consider how these verses apply to your daily walk with God.`,
-          closingSong: 'How Great Thou Art (SDAH #86)',
-          theme: `${weeklyPlan.book_name} Chapter ${chapter} - Day ${mondayIndex + 1}`
+          closingSong: bookThemeSongs[Math.floor(Math.random() * bookThemeSongs.length)],
+          theme: `${weeklyPlan.book_name} Chapter ${chapter} - Day ${mondayIndex + 1}`,
+          recommendedTime: getRecommendedTime(ageRange)
         };
       } else {
+        const topicSongs = getTopicalSongs(weeklyPlan.topic_name);
+        const fullReading = getTopicalReading(weeklyPlan.topic_name, mondayIndex);
+        
         return {
-          openingSong: 'Amazing Grace (SDAH #108)',
-          bibleReading: getTopicalReading(weeklyPlan.topic_name, mondayIndex),
+          openingSong: topicSongs[Math.floor(Math.random() * topicSongs.length)],
+          bibleReading: fullReading,
           discussion: generateDiscussionQuestions(weeklyPlan.topic_name, ageRange),
           application: `Continue exploring ${weeklyPlan.topic_name}. Look for ways to apply today's insights throughout your week.`,
-          closingSong: 'What a Friend We Have in Jesus (SDAH #124)',
-          theme: `${weeklyPlan.topic_name} - Day ${mondayIndex + 1}`
+          closingSong: topicSongs[Math.floor(Math.random() * topicSongs.length)],
+          theme: `${weeklyPlan.topic_name} - Day ${mondayIndex + 1}`,
+          recommendedTime: getRecommendedTime(ageRange)
         };
       }
     } catch (error) {
@@ -535,6 +620,24 @@ export const DailyWorshipPlan = () => {
         </div>
       </div>
 
+      {/* Time Recommendation */}
+      {currentPlan.recommendedTime && (
+        <Card className="border-2 bg-indigo-50 border-indigo-200 shadow-sm">
+          <div className="p-4">
+            <h3 className="font-semibold text-gray-800 mb-2 flex items-center">
+              <MessageCircle className="w-5 h-5 mr-2 text-gray-600" />
+              Recommended Duration
+            </h3>
+            <p className="text-indigo-700 font-medium">{currentPlan.recommendedTime}</p>
+            {ageRange === 'child' && (
+              <p className="text-sm text-indigo-600 mt-1">
+                Shorter sessions work best for young children. Keep it engaging with songs and interactive activities.
+              </p>
+            )}
+          </div>
+        </Card>
+      )}
+
       <div className="space-y-4">
         <PlanSection
           icon={Music}
@@ -549,6 +652,44 @@ export const DailyWorshipPlan = () => {
           content={currentPlan.bibleReading}
           color="bg-purple-50 border-purple-200"
         />
+
+        {/* Role Assignments */}
+        {currentPlan.leaderId && (
+          <Card className="border-2 bg-emerald-50 border-emerald-200 shadow-sm">
+            <div className="p-4">
+              <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+                <Users className="w-5 h-5 mr-2 text-gray-600" />
+                Today's Worship Roles
+              </h3>
+              <div className="space-y-2">
+                {currentPlan.leaderId && (
+                  <div className="flex items-center">
+                    <span className="bg-emerald-200 text-emerald-800 px-2 py-1 rounded text-sm font-medium mr-2">
+                      Leader
+                    </span>
+                    <span className="text-gray-700">{currentPlan.leaderName || currentPlan.leaderId}</span>
+                  </div>
+                )}
+                {currentPlan.assistantId && (
+                  <div className="flex items-center">
+                    <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded text-sm font-medium mr-2">
+                      Assistant
+                    </span>
+                    <span className="text-gray-700">{currentPlan.assistantName || currentPlan.assistantId}</span>
+                  </div>
+                )}
+                {currentPlan.familyMembersPresent && currentPlan.familyMembersPresent.length > 0 && (
+                  <div className="flex items-start">
+                    <span className="bg-amber-200 text-amber-800 px-2 py-1 rounded text-sm font-medium mr-2 mt-0.5">
+                      Present
+                    </span>
+                    <span className="text-gray-700">{currentPlan.familyMembersPresent.join(', ')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Card>
+        )}
 
         <PlanSection
           icon={MessageCircle}
