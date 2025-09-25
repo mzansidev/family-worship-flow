@@ -94,6 +94,20 @@ export type Database = {
             referencedRelation: "worship_plans"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_daily_worship_entries_assistant"
+            columns: ["assistant_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_daily_worship_entries_leader"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
         ]
       }
       family_members: {

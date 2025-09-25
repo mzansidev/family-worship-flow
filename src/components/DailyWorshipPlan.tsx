@@ -154,8 +154,8 @@ export const DailyWorshipPlan = () => {
         .from('daily_worship_entries')
         .select(`
           *,
-          leader:family_members!leader_id(name),
-          assistant:family_members!assistant_id(name)
+          leader:family_members!daily_worship_entries_leader_id_fkey(name),
+          assistant:family_members!daily_worship_entries_assistant_id_fkey(name)
         `)
         .eq('user_id', user.id as any)
         .eq('date', today as any)
@@ -178,6 +178,7 @@ export const DailyWorshipPlan = () => {
               theme: randomDerived.theme,
               worship_plan_id: null,
               updated_at: new Date().toISOString()
+              // Preserve existing leader_id and assistant_id
             } as any)
             .eq('id', (existingPlan as any).id);
           const enrichedPlan = {
@@ -214,6 +215,7 @@ export const DailyWorshipPlan = () => {
               theme: weeklyDerived.theme,
               worship_plan_id: linkId,
               updated_at: new Date().toISOString()
+              // Preserve existing leader_id and assistant_id
             } as any)
             .eq('id', (existingPlan as any).id);
           const enrichedPlan = {
@@ -436,6 +438,14 @@ export const DailyWorshipPlan = () => {
 
       if (existingRows && existingRows.length > 0) {
         const existingId = (existingRows[0] as any).id;
+        
+        // Fetch current role assignments before updating
+        const { data: currentEntry } = await supabase
+          .from('daily_worship_entries')
+          .select('leader_id, assistant_id, family_members_present')
+          .eq('id', existingId)
+          .maybeSingle();
+        
         await supabase
           .from('daily_worship_entries')
           .update({
@@ -446,9 +456,35 @@ export const DailyWorshipPlan = () => {
             closing_song: newPlan.closingSong,
             theme: newPlan.theme,
             worship_plan_id: worshipPlanId,
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            // Preserve existing role assignments
+            leader_id: currentEntry?.leader_id,
+            assistant_id: currentEntry?.assistant_id,
+            family_members_present: currentEntry?.family_members_present
           } as any)
           .eq('id', existingId);
+          
+        // Add role info to the plan for display
+        if (currentEntry) {
+          const { data: memberData } = await supabase
+            .from('family_members')
+            .select('id, name')
+            .in('id', [currentEntry.leader_id, currentEntry.assistant_id].filter(Boolean));
+          
+          const leaderInfo = memberData?.find(m => m.id === currentEntry.leader_id);
+          const assistantInfo = memberData?.find(m => m.id === currentEntry.assistant_id);
+          
+          setCurrentPlan({
+            ...newPlan,
+            leaderId: currentEntry.leader_id,
+            assistantId: currentEntry.assistant_id,
+            leaderName: leaderInfo?.name,
+            assistantName: assistantInfo?.name,
+            familyMembersPresent: currentEntry.family_members_present || []
+          });
+        } else {
+          setCurrentPlan(newPlan);
+        }
       } else {
         await supabase
           .from('daily_worship_entries')
