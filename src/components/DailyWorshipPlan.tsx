@@ -53,10 +53,10 @@ export const DailyWorshipPlan = () => {
     const timeRecommendations = {
       child: '10-15 minutes',
       teen: '15-20 minutes', 
-      adult: '20-30 minutes',
-      family: '15-25 minutes'
+      adult: '25-35 minutes',
+      family: '20-30 minutes'
     };
-    return timeRecommendations[age as keyof typeof timeRecommendations] || '15-25 minutes';
+    return timeRecommendations[age as keyof typeof timeRecommendations] || '20-30 minutes';
   };
 
   const getTopicalSongs = (theme: string) => {
@@ -185,8 +185,8 @@ export const DailyWorshipPlan = () => {
             ...randomDerived,
             leaderId: (existingPlan as any).leader_id,
             assistantId: (existingPlan as any).assistant_id,
-            leaderName: (existingPlan as any).leader?.[0]?.name,
-            assistantName: (existingPlan as any).assistant?.[0]?.name,
+            leaderName: (existingPlan as any).leader?.name,
+            assistantName: (existingPlan as any).assistant?.name,
             familyMembersPresent: (existingPlan as any).family_members_present || []
           };
           setCurrentPlan(enrichedPlan);
@@ -222,8 +222,8 @@ export const DailyWorshipPlan = () => {
             ...weeklyDerived,
             leaderId: (existingPlan as any).leader_id,
             assistantId: (existingPlan as any).assistant_id,
-            leaderName: (existingPlan as any).leader?.[0]?.name,
-            assistantName: (existingPlan as any).assistant?.[0]?.name,
+            leaderName: (existingPlan as any).leader?.name,
+            assistantName: (existingPlan as any).assistant?.name,
             familyMembersPresent: (existingPlan as any).family_members_present || []
           };
           setCurrentPlan(enrichedPlan);
@@ -615,7 +615,7 @@ export const DailyWorshipPlan = () => {
             <SelectContent>
               <SelectItem value="child">Children (5-10)</SelectItem>
               <SelectItem value="teen">Teens (11-17)</SelectItem>
-              <SelectItem value="adult">Adults (18+)</SelectItem>
+              <SelectItem value="adult">Adults (20+)</SelectItem>
               <SelectItem value="family">Mixed Family</SelectItem>
             </SelectContent>
           </Select>
@@ -657,22 +657,35 @@ export const DailyWorshipPlan = () => {
       </div>
 
       {/* Time Recommendation */}
-      {currentPlan.recommendedTime && (
-        <Card className="border-2 bg-indigo-50 border-indigo-200 shadow-sm">
-          <div className="p-4">
-            <h3 className="font-semibold text-gray-800 mb-2 flex items-center">
-              <MessageCircle className="w-5 h-5 mr-2 text-gray-600" />
-              Recommended Duration
-            </h3>
-            <p className="text-indigo-700 font-medium">{currentPlan.recommendedTime}</p>
-            {ageRange === 'child' && (
-              <p className="text-sm text-indigo-600 mt-1">
-                Shorter sessions work best for young children. Keep it engaging with songs and interactive activities.
-              </p>
-            )}
-          </div>
-        </Card>
-      )}
+      <Card className="border-2 bg-indigo-50 border-indigo-200 shadow-sm">
+        <div className="p-4">
+          <h3 className="font-semibold text-gray-800 mb-2 flex items-center">
+            <MessageCircle className="w-5 h-5 mr-2 text-gray-600" />
+            Recommended Duration
+          </h3>
+          <p className="text-indigo-700 font-medium text-lg">{getRecommendedTime(ageRange)}</p>
+          {ageRange === 'child' && (
+            <p className="text-sm text-indigo-600 mt-2">
+              Shorter sessions work best for young children. Keep it engaging with songs and interactive activities.
+            </p>
+          )}
+          {ageRange === 'teen' && (
+            <p className="text-sm text-indigo-600 mt-2">
+              Perfect length for teens to engage meaningfully without losing focus. Include discussion time.
+            </p>
+          )}
+          {ageRange === 'adult' && (
+            <p className="text-sm text-indigo-600 mt-2">
+              Extended time allows for deeper study, reflection, and meaningful discussion.
+            </p>
+          )}
+          {ageRange === 'family' && (
+            <p className="text-sm text-indigo-600 mt-2">
+              Balanced duration suitable for all ages, with activities everyone can participate in.
+            </p>
+          )}
+        </div>
+      </Card>
 
       <div className="space-y-4">
         <PlanSection
