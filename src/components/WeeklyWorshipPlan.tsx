@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { WeeklyPlanSetup } from './WeeklyPlanSetup';
 import { WeeklyPlanCalendar } from './WeeklyPlanCalendar';
 import { WeeklyPlanContent } from './WeeklyPlanContent';
+import { PlanHistoryDialog } from './PlanHistoryDialog';
 import { Button } from '@/components/ui/button';
 import { RotateCcw } from 'lucide-react';
 
@@ -266,6 +267,11 @@ export const WeeklyWorshipPlan = () => {
         </div>
         
         <div className="flex items-center gap-3">
+          <PlanHistoryDialog 
+            currentPlan={currentPlan}
+            onPlanRestored={fetchCurrentPlan}
+          />
+          
           <Button 
             onClick={advanceWeeklyPlan}
             variant="outline"

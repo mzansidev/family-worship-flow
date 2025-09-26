@@ -134,6 +134,60 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_history: {
+        Row: {
+          book_name: string | null
+          created_at: string
+          current_chapter: number | null
+          current_week: number | null
+          id: string
+          is_archived: boolean | null
+          plan_name: string
+          plan_type: string
+          progress_data: Json | null
+          start_date: string
+          study_type: string
+          topic_name: string | null
+          total_days_completed: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          book_name?: string | null
+          created_at?: string
+          current_chapter?: number | null
+          current_week?: number | null
+          id?: string
+          is_archived?: boolean | null
+          plan_name: string
+          plan_type?: string
+          progress_data?: Json | null
+          start_date: string
+          study_type: string
+          topic_name?: string | null
+          total_days_completed?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          book_name?: string | null
+          created_at?: string
+          current_chapter?: number | null
+          current_week?: number | null
+          id?: string
+          is_archived?: boolean | null
+          plan_name?: string
+          plan_type?: string
+          progress_data?: Json | null
+          start_date?: string
+          study_type?: string
+          topic_name?: string | null
+          total_days_completed?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       principles_content: {
         Row: {
           category_id: string
