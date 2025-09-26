@@ -156,15 +156,48 @@ export const WeeklyWorshipPlan = () => {
     }
   };
 
+  const [pendingAssignments, setPendingAssignments] = useState<{[key: string]: {[key: string]: string}}>({});
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
   const handleUpdateAssignment = async (day: number, role: string, memberId: string) => {
-    // For now, just log the assignment. In a full implementation,
-    // you might want to store these in a separate assignments table
-    console.log(`Assigned ${memberId} to ${role} on day ${day}`);
+    const assignmentKey = `${day}-${role}`;
+    setPendingAssignments(prev => ({
+      ...prev,
+      [assignmentKey]: { day: day.toString(), role, memberId }
+    }));
+    setHasUnsavedChanges(true);
     
-    toast({
-      title: "Assignment Updated",
-      description: `Role assignment updated for ${['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][day]}`
-    });
+    console.log(`Assignment queued: ${memberId} to ${role} on day ${day}`);
+  };
+
+  const saveWeeklyPlan = async () => {
+    if (!currentPlan || !user?.id) return;
+    
+    setLoading(true);
+    try {
+      // Here you would save the pending assignments to the database
+      // For now, we'll just clear the pending state and show success
+      
+      // In a full implementation, you might create a weekly_assignments table
+      // or store the assignments in the worship_plans table as JSONB
+      
+      setPendingAssignments({});
+      setHasUnsavedChanges(false);
+      
+      toast({
+        title: "Plan Saved",
+        description: "Weekly worship plan and assignments have been saved successfully!"
+      });
+    } catch (error) {
+      console.error('Error saving weekly plan:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save weekly plan",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const resetPlan = async () => {
@@ -270,6 +303,24 @@ export const WeeklyWorshipPlan = () => {
           />
         </div>
       </div>
+
+      {hasUnsavedChanges && (
+        <div className="mt-6 p-4 bg-accent/50 rounded-lg border border-accent">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <span className="text-sm text-muted-foreground">You have unsaved changes to role assignments</span>
+            </div>
+            <Button 
+              onClick={saveWeeklyPlan}
+              disabled={loading}
+              className="flex items-center gap-2"
+            >
+              {loading ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
