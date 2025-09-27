@@ -10,12 +10,15 @@ import { useUserStats } from '@/hooks/useUserStats';
 
 type PlanSource = 'random' | 'weekly';
 
-export const DailyWorshipPlan = () => {
+type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth' | 'about';
+
+export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: ActiveFeature) => void }) => {
   const [ageRange, setAgeRange] = useState('family');
   const [planSource, setPlanSource] = useState<PlanSource>('random');
   const [currentPlan, setCurrentPlan] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [weeklyAssignments, setWeeklyAssignments] = useState<any>({});
   const { user } = useAuth();
   const { toast } = useToast();
   const { updateStats, refetch } = useUserStats();
@@ -140,6 +143,46 @@ export const DailyWorshipPlan = () => {
       theme: randomTheme,
       recommendedTime: getRecommendedTime(ageRange)
     };
+  };
+
+  const fetchWeeklyAssignments = async () => {
+    if (!user) return;
+    
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    try {
+      // Get active worship plan
+      const { data: activePlan } = await supabase
+        .from('worship_plans')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+      
+      if (activePlan) {
+        // Get assignments for today
+        const { data: assignments } = await supabase
+          .from('weekly_assignments')
+          .select(`
+            role,
+            assigned_member_id,
+            family_members!inner(name)
+          `)
+          .eq('worship_plan_id', activePlan.id)
+          .eq('day_of_week', dayOfWeek);
+        
+        if (assignments) {
+          const assignmentsByRole = assignments.reduce((acc: any, assignment: any) => {
+            acc[assignment.role] = assignment.family_members?.name || 'Unknown';
+            return acc;
+          }, {});
+          setWeeklyAssignments(assignmentsByRole);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching weekly assignments:', error);
+    }
   };
 
   const fetchTodaysPlan = async () => {
@@ -538,6 +581,7 @@ export const DailyWorshipPlan = () => {
   useEffect(() => {
     if (user) {
       fetchTodaysPlan();
+      fetchWeeklyAssignments();
     }
   }, [user, planSource]);
 
@@ -703,42 +747,56 @@ export const DailyWorshipPlan = () => {
         />
 
         {/* Role Assignments */}
-        {currentPlan.leaderId && (
-          <Card className="border-2 bg-emerald-50 border-emerald-200 shadow-sm">
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
-                <Users className="w-5 h-5 mr-2 text-gray-600" />
-                Today's Worship Roles
-              </h3>
+        <Card className="border-2 bg-emerald-50 border-emerald-200 shadow-sm">
+          <div className="p-4">
+            <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+              <Users className="w-5 h-5 mr-2 text-gray-600" />
+              Today's Worship Roles
+            </h3>
+            {Object.keys(weeklyAssignments).length > 0 ? (
               <div className="space-y-2">
-                {currentPlan.leaderId && (
+                {weeklyAssignments.Leader && (
                   <div className="flex items-center">
                     <span className="bg-emerald-200 text-emerald-800 px-2 py-1 rounded text-sm font-medium mr-2">
                       Leader
                     </span>
-                    <span className="text-gray-700">{currentPlan.leaderName || currentPlan.leaderId}</span>
+                    <span className="text-gray-700">{weeklyAssignments.Leader}</span>
                   </div>
                 )}
-                {currentPlan.assistantId && (
+                {weeklyAssignments.Assistant && (
                   <div className="flex items-center">
                     <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded text-sm font-medium mr-2">
                       Assistant
                     </span>
-                    <span className="text-gray-700">{currentPlan.assistantName || currentPlan.assistantId}</span>
+                    <span className="text-gray-700">{weeklyAssignments.Assistant}</span>
                   </div>
                 )}
-                {currentPlan.familyMembersPresent && currentPlan.familyMembersPresent.length > 0 && (
-                  <div className="flex items-start">
-                    <span className="bg-amber-200 text-amber-800 px-2 py-1 rounded text-sm font-medium mr-2 mt-0.5">
+                {weeklyAssignments.Present && (
+                  <div className="flex items-center">
+                    <span className="bg-amber-200 text-amber-800 px-2 py-1 rounded text-sm font-medium mr-2">
                       Present
                     </span>
-                    <span className="text-gray-700">{currentPlan.familyMembersPresent.join(', ')}</span>
+                    <span className="text-gray-700">{weeklyAssignments.Present}</span>
                   </div>
                 )}
               </div>
-            </div>
-          </Card>
-        )}
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-600 mb-3">Roles not set</p>
+                {onNavigate && (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => onNavigate('weekly')}
+                    className="text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+                  >
+                    Set Now
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </Card>
 
         <PlanSection
           icon={MessageCircle}

@@ -14,6 +14,10 @@ import { AboutUs } from './AboutUs';
 
 type ActiveFeature = 'dashboard' | 'daily' | 'weekly' | 'principles' | 'profile' | 'auth' | 'about';
 
+interface NavigationHandler {
+  (feature: ActiveFeature): void;
+}
+
 export const MainDashboard = () => {
   const [activeFeature, setActiveFeature] = useState<ActiveFeature>('dashboard');
   const { user, loading } = useAuth();
@@ -53,7 +57,7 @@ export const MainDashboard = () => {
 
     switch (activeFeature) {
       case 'daily':
-        return <DailyWorshipPlan />;
+        return <DailyWorshipPlan onNavigate={setActiveFeature as NavigationHandler} />;
       case 'weekly':
         return <WeeklyWorshipPlan />;
       case 'principles':
