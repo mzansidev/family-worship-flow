@@ -118,7 +118,7 @@ export const FamilyMembersSection: React.FC = () => {
         </div>
 
         {showAddForm && (
-          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+          <div className="mb-4 p-4 bg-muted rounded-lg">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Input
                 value={newMemberName}
@@ -159,7 +159,7 @@ export const FamilyMembersSection: React.FC = () => {
 
         <div className="space-y-2">
           {members.map((member) => (
-            <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div key={member.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
               {editingId === member.id ? (
                 <div className="flex items-center gap-3 flex-1">
                   <Input
