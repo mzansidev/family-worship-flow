@@ -614,7 +614,7 @@ export const DailyWorshipPlan = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="child">Children (5-10)</SelectItem>
-              <SelectItem value="teen">Teens (11-17)</SelectItem>
+              <SelectItem value="teen">Teens (11-19)</SelectItem>
               <SelectItem value="adult">Adults (20+)</SelectItem>
               <SelectItem value="family">Mixed Family</SelectItem>
             </SelectContent>
