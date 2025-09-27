@@ -38,6 +38,25 @@ export const WeeklyWorshipPlan = () => {
       if (plan) {
         console.log('[WeeklyWorshipPlan] fetched plan:', plan);
         setCurrentPlan(plan);
+        
+        // Fetch existing assignments for this plan
+        const { data: assignments, error: assignmentsError } = await supabase
+          .from('weekly_assignments')
+          .select('*')
+          .eq('worship_plan_id', plan.id);
+
+        if (!assignmentsError && assignments) {
+          // Convert assignments to the format expected by the calendar component
+          const assignmentMap: {[key: string]: {[key: string]: string}} = {};
+          assignments.forEach(assignment => {
+            if (!assignmentMap[assignment.day_of_week]) {
+              assignmentMap[assignment.day_of_week] = {};
+            }
+            assignmentMap[assignment.day_of_week][assignment.role] = assignment.assigned_member_id || '';
+          });
+          // Set both pending assignments (for immediate display) and keep them as the current state
+          setPendingAssignments(assignmentMap);
+        }
       }
     } catch (error) {
       console.error('Error in fetchCurrentPlan:', error);
@@ -162,12 +181,18 @@ export const WeeklyWorshipPlan = () => {
 
   const handleUpdateAssignment = async (day: number, role: string, memberId: string) => {
     const assignmentKey = `${day}-${role}`;
-    setPendingAssignments(prev => ({
-      ...prev,
-      [assignmentKey]: { day: day.toString(), role, memberId }
-    }));
-    setHasUnsavedChanges(true);
     
+    // Update the assignments in the format that matches our database structure
+    setPendingAssignments(prev => {
+      const newAssignments = { ...prev };
+      if (!newAssignments[day]) {
+        newAssignments[day] = {};
+      }
+      newAssignments[day][role] = memberId;
+      return newAssignments;
+    });
+    
+    setHasUnsavedChanges(true);
     console.log(`Assignment queued: ${memberId} to ${role} on day ${day}`);
   };
 
@@ -176,13 +201,24 @@ export const WeeklyWorshipPlan = () => {
     
     setLoading(true);
     try {
-      // Here you would save the pending assignments to the database
-      // For now, we'll just clear the pending state and show success
+      // Save each pending assignment to the database
+      for (const [dayOfWeek, dayAssignments] of Object.entries(pendingAssignments)) {
+        for (const [role, memberId] of Object.entries(dayAssignments)) {
+          // Upsert the assignment
+          await supabase
+            .from('weekly_assignments')
+            .upsert({
+              worship_plan_id: currentPlan.id,
+              user_id: user.id,
+              day_of_week: parseInt(dayOfWeek),
+              role,
+              assigned_member_id: memberId || null
+            }, {
+              onConflict: 'worship_plan_id,day_of_week,role'
+            });
+        }
+      }
       
-      // In a full implementation, you might create a weekly_assignments table
-      // or store the assignments in the worship_plans table as JSONB
-      
-      setPendingAssignments({});
       setHasUnsavedChanges(false);
       
       toast({
@@ -294,9 +330,9 @@ export const WeeklyWorshipPlan = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">
-          <WeeklyPlanCalendar
-            plan={currentPlan}
-            onDaySelect={setSelectedDay}
+        <WeeklyPlanCalendar 
+          plan={{ ...currentPlan, assignments: pendingAssignments }}
+          onDaySelect={setSelectedDay}
             selectedDay={selectedDay}
             onUpdateAssignment={handleUpdateAssignment}
           />

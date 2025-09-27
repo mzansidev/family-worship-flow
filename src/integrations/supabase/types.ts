@@ -373,6 +373,39 @@ export type Database = {
         }
         Relationships: []
       }
+      weekly_assignments: {
+        Row: {
+          assigned_member_id: string | null
+          created_at: string
+          day_of_week: number
+          id: string
+          role: string
+          updated_at: string
+          user_id: string
+          worship_plan_id: string
+        }
+        Insert: {
+          assigned_member_id?: string | null
+          created_at?: string
+          day_of_week: number
+          id?: string
+          role: string
+          updated_at?: string
+          user_id: string
+          worship_plan_id: string
+        }
+        Update: {
+          assigned_member_id?: string | null
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          role?: string
+          updated_at?: string
+          user_id?: string
+          worship_plan_id?: string
+        }
+        Relationships: []
+      }
       worship_plans: {
         Row: {
           book_name: string | null

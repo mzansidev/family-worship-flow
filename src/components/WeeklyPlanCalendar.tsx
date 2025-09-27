@@ -32,6 +32,13 @@ export const WeeklyPlanCalendar: React.FC<WeeklyPlanCalendarProps> = ({
   const { members } = useFamilyMembers();
   const [assignments, setAssignments] = useState<{ [key: string]: { [role: string]: string } }>({});
 
+  // Initialize assignments from props when component mounts or plan changes
+  useEffect(() => {
+    if (plan?.assignments) {
+      setAssignments(plan.assignments);
+    }
+  }, [plan]);
+
   const getCurrentWeekDates = () => {
     const today = new Date();
     const currentDay = today.getDay();
