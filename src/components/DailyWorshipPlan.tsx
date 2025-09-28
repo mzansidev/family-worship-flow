@@ -755,28 +755,44 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
             </h3>
             {Object.keys(weeklyAssignments).length > 0 ? (
               <div className="space-y-2">
-                {weeklyAssignments.Leader && (
+                {weeklyAssignments.leader && (
                   <div className="flex items-center">
                     <span className="bg-emerald-200 text-emerald-800 px-2 py-1 rounded text-sm font-medium mr-2">
                       Leader
                     </span>
-                    <span className="text-gray-700">{weeklyAssignments.Leader}</span>
+                    <span className="text-gray-700">{weeklyAssignments.leader}</span>
                   </div>
                 )}
-                {weeklyAssignments.Assistant && (
+                {weeklyAssignments.assistant && (
                   <div className="flex items-center">
                     <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded text-sm font-medium mr-2">
                       Assistant
                     </span>
-                    <span className="text-gray-700">{weeklyAssignments.Assistant}</span>
+                    <span className="text-gray-700">{weeklyAssignments.assistant}</span>
                   </div>
                 )}
-                {weeklyAssignments.Present && (
+                {weeklyAssignments.presenter && (
                   <div className="flex items-center">
                     <span className="bg-amber-200 text-amber-800 px-2 py-1 rounded text-sm font-medium mr-2">
-                      Present
+                      Presenter
                     </span>
-                    <span className="text-gray-700">{weeklyAssignments.Present}</span>
+                    <span className="text-gray-700">{weeklyAssignments.presenter}</span>
+                  </div>
+                )}
+                {weeklyAssignments.song_leader && (
+                  <div className="flex items-center">
+                    <span className="bg-purple-200 text-purple-800 px-2 py-1 rounded text-sm font-medium mr-2">
+                      Song Leader
+                    </span>
+                    <span className="text-gray-700">{weeklyAssignments.song_leader}</span>
+                  </div>
+                )}
+                {weeklyAssignments.prayer_leader && (
+                  <div className="flex items-center">
+                    <span className="bg-indigo-200 text-indigo-800 px-2 py-1 rounded text-sm font-medium mr-2">
+                      Prayer Leader
+                    </span>
+                    <span className="text-gray-700">{weeklyAssignments.prayer_leader}</span>
                   </div>
                 )}
               </div>
