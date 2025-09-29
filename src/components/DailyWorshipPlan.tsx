@@ -384,6 +384,105 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
 
   const getTopicalReading = (topic: string, dayIndex: number) => {
     const readings: { [key: string]: string[] } = {
+      'The Trinity': [
+        'Genesis 1:26-27 - Let Us Make Man',
+        'Matthew 28:19 - Baptism in Three Names',
+        'John 14:16-17 - The Comforter',
+        '2 Corinthians 13:14 - Grace of Three Persons',
+        'Ephesians 4:4-6 - One Spirit, One Lord, One God',
+        '1 Peter 1:2 - Chosen by All Three',
+        '1 John 5:7 - Three That Bear Record'
+      ],
+      'Salvation by Grace': [
+        'Ephesians 2:8-9 - Saved by Grace Through Faith',
+        'Romans 3:23-24 - All Have Sinned',
+        'Romans 6:23 - The Gift of God',
+        'Titus 3:5 - Not by Works of Righteousness',
+        'Acts 4:12 - No Other Name',
+        '2 Corinthians 5:17 - New Creation',
+        'Romans 5:1 - Justified by Faith'
+      ],
+      'The Sabbath': [
+        'Genesis 2:2-3 - God Rested',
+        'Exodus 20:8-11 - Remember the Sabbath',
+        'Isaiah 58:13-14 - Delight in the Sabbath',
+        'Mark 2:27 - Sabbath Made for Man',
+        'Luke 4:16 - Jesus\' Custom',
+        'Hebrews 4:9-10 - Sabbath Rest Remains',
+        'Ezekiel 20:12 - A Sign Between Us'
+      ],
+      'Second Coming of Christ': [
+        'John 14:1-3 - I Will Come Again',
+        'Acts 1:9-11 - This Same Jesus',
+        '1 Thessalonians 4:16-17 - The Lord Descends',
+        'Matthew 24:30 - Sign of the Son of Man',
+        'Revelation 1:7 - Every Eye Shall See',
+        '2 Peter 3:10 - Day of the Lord',
+        'Matthew 25:31 - When the Son Comes'
+      ],
+      'Creation': [
+        'Genesis 1:1 - In the Beginning',
+        'Genesis 1:26-31 - Created in God\'s Image',
+        'Psalm 19:1 - Heavens Declare Glory',
+        'Colossians 1:16 - All Things Created by Him',
+        'Hebrews 11:3 - By Faith We Understand',
+        'Nehemiah 9:6 - Thou Hast Made Heaven',
+        'Revelation 4:11 - Worthy to Receive Glory'
+      ],
+      'The Law of God': [
+        'Exodus 20:3-17 - The Ten Commandments',
+        'Matthew 5:17-19 - Not to Destroy but Fulfill',
+        'Romans 7:12 - The Law is Holy',
+        'Psalm 119:105 - Thy Word is a Lamp',
+        'James 2:10-12 - Keep the Whole Law',
+        '1 John 5:3 - His Commandments Not Grievous',
+        'Ecclesiastes 12:13 - Fear God and Keep Commandments'
+      ],
+      'Stewardship': [
+        'Malachi 3:8-10 - Will a Man Rob God',
+        '1 Corinthians 4:2 - Required in Stewards',
+        'Luke 16:10 - Faithful in Least',
+        '2 Corinthians 9:6-7 - Cheerful Giver',
+        'Matthew 6:19-21 - Treasures in Heaven',
+        'Proverbs 3:9-10 - Honor the Lord',
+        '1 Timothy 6:17-19 - Rich in Good Works'
+      ],
+      'Christian Behavior': [
+        'Galatians 5:22-23 - Fruit of the Spirit',
+        'Colossians 3:12-17 - Put on Christ',
+        'Philippians 4:8 - Think on These Things',
+        '1 Corinthians 10:31 - Do All to God\'s Glory',
+        'Romans 12:1-2 - Present Your Bodies',
+        '1 Peter 2:9 - A Peculiar People',
+        'Ephesians 4:22-24 - Put on New Man'
+      ],
+      'Marriage and Family': [
+        'Genesis 2:24 - One Flesh',
+        'Ephesians 5:22-33 - Husbands and Wives',
+        'Ephesians 6:1-4 - Children and Parents',
+        'Proverbs 31:10-31 - Virtuous Woman',
+        'Malachi 2:14-16 - God Hates Divorce',
+        '1 Corinthians 7:3-5 - Marriage Duties',
+        'Deuteronomy 6:6-9 - Teach Your Children'
+      ],
+      'Death and Resurrection': [
+        'Ecclesiastes 9:5-6 - The Dead Know Nothing',
+        'John 11:11-14 - Sleep',
+        '1 Corinthians 15:51-54 - Changed in a Moment',
+        '1 Thessalonians 4:13-16 - Sleep in Jesus',
+        'Daniel 12:2 - Many Shall Awake',
+        'Job 19:25-27 - I Know My Redeemer Lives',
+        'Psalm 146:4 - His Breath Goes Forth'
+      ],
+      'The Heavenly Sanctuary': [
+        'Hebrews 8:1-2 - A Minister of the Sanctuary',
+        'Hebrews 9:11-12 - Greater and More Perfect',
+        'Daniel 8:14 - Sanctuary Cleansed',
+        'Leviticus 16:30 - Day of Atonement',
+        'Hebrews 4:14-16 - Great High Priest',
+        'Revelation 11:19 - Temple in Heaven',
+        'Hebrews 7:25 - Ever Lives to Intercede'
+      ],
       'Prayer and Faith': [
         'Matthew 6:5-15 - The Lord\'s Prayer',
         'James 5:13-18 - Prayer for Healing',
