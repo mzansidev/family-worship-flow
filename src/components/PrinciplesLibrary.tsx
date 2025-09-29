@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Users, Heart, Clock, ChevronRight, BookOpen, Edit2, Trash2 } from 'lucide-react';
+import { Lightbulb, Users, Heart, Clock, ChevronRight, BookOpen, Edit2, Trash2, ChevronLeft } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -91,6 +91,31 @@ export const PrinciplesLibrary = () => {
     }
   };
 
+  // Navigation helpers
+  const getNextCategory = () => {
+    const currentIndex = categories.findIndex(c => c.id === selectedCategory);
+    return currentIndex < categories.length - 1 ? categories[currentIndex + 1] : null;
+  };
+
+  const getPrevCategory = () => {
+    const currentIndex = categories.findIndex(c => c.id === selectedCategory);
+    return currentIndex > 0 ? categories[currentIndex - 1] : null;
+  };
+
+  const getNextArticle = () => {
+    if (!selectedCategory || !selectedArticle) return null;
+    const articles = getArticlesForCategory(selectedCategory);
+    const currentIndex = articles.findIndex(a => a.id === selectedArticle.id);
+    return currentIndex < articles.length - 1 ? articles[currentIndex + 1] : null;
+  };
+
+  const getPrevArticle = () => {
+    if (!selectedCategory || !selectedArticle) return null;
+    const articles = getArticlesForCategory(selectedCategory);
+    const currentIndex = articles.findIndex(a => a.id === selectedArticle.id);
+    return currentIndex > 0 ? articles[currentIndex - 1] : null;
+  };
+
   if (loading) {
     return (
       <div className="text-center p-8">
@@ -101,6 +126,9 @@ export const PrinciplesLibrary = () => {
 
   // Show individual article
   if (selectedArticle) {
+    const nextArticle = getNextArticle();
+    const prevArticle = getPrevArticle();
+    
     return (
       <div className="space-y-6">
         <button
@@ -135,6 +163,40 @@ export const PrinciplesLibrary = () => {
             </div>
           </div>
         </Card>
+
+        {/* Article Navigation */}
+        <div className="flex justify-between items-center">
+          <div>
+            {prevArticle && (
+              <Button
+                onClick={() => handleReadArticle(prevArticle)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <div className="text-left">
+                  <div className="text-xs text-muted-foreground">Previous</div>
+                  <div className="text-sm font-medium">{prevArticle.title}</div>
+                </div>
+              </Button>
+            )}
+          </div>
+          <div>
+            {nextArticle && (
+              <Button
+                onClick={() => handleReadArticle(nextArticle)}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <div className="text-right">
+                  <div className="text-xs text-muted-foreground">Next</div>
+                  <div className="text-sm font-medium">{nextArticle.title}</div>
+                </div>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
@@ -143,6 +205,8 @@ export const PrinciplesLibrary = () => {
   if (selectedCategory) {
     const category = categories.find(c => c.id === selectedCategory);
     const articles = getArticlesForCategory(selectedCategory);
+    const nextCategory = getNextCategory();
+    const prevCategory = getPrevCategory();
     
     if (category) {
       return (
@@ -200,6 +264,40 @@ export const PrinciplesLibrary = () => {
                 </div>
               </Card>
             ))}
+          </div>
+
+          {/* Category Navigation */}
+          <div className="flex justify-between items-center">
+            <div>
+              {prevCategory && (
+                <Button
+                  onClick={() => setSelectedCategory(prevCategory.id)}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <div className="text-left">
+                    <div className="text-xs text-muted-foreground">Previous Category</div>
+                    <div className="text-sm font-medium">{prevCategory.title}</div>
+                  </div>
+                </Button>
+              )}
+            </div>
+            <div>
+              {nextCategory && (
+                <Button
+                  onClick={() => setSelectedCategory(nextCategory.id)}
+                  variant="outline"
+                  className="flex items-center gap-2"
+                >
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">Next Category</div>
+                    <div className="text-sm font-medium">{nextCategory.title}</div>
+                  </div>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       );
