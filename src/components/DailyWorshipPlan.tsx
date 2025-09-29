@@ -148,6 +148,8 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
   const fetchWeeklyAssignments = async () => {
     if (!user) return;
     
+    console.log('[fetchWeeklyAssignments] starting fetch for user:', user.id);
+    
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
     
@@ -161,8 +163,10 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
         .maybeSingle();
       
       if (activePlan) {
+        console.log('[fetchWeeklyAssignments] found active plan:', activePlan.id, 'for day:', dayOfWeek);
+        
         // Get assignments for today
-        const { data: assignments } = await supabase
+        const { data: assignments, error: assignError } = await supabase
           .from('weekly_assignments')
           .select(`
             role,
@@ -172,13 +176,22 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
           .eq('worship_plan_id', activePlan.id)
           .eq('day_of_week', dayOfWeek);
         
-        if (assignments) {
+        console.log('[fetchWeeklyAssignments] assignments query result:', { assignments, assignError });
+        
+        if (assignments && assignments.length > 0) {
           const assignmentsByRole = assignments.reduce((acc: any, assignment: any) => {
             acc[assignment.role] = assignment.family_members?.name || 'Unknown';
             return acc;
           }, {});
+          console.log('[fetchWeeklyAssignments] processed assignments:', assignmentsByRole);
           setWeeklyAssignments(assignmentsByRole);
+        } else {
+          console.log('[fetchWeeklyAssignments] no assignments found for today');
+          setWeeklyAssignments({});
         }
+      } else {
+        console.log('[fetchWeeklyAssignments] no active plan found');
+        setWeeklyAssignments({});
       }
     } catch (error) {
       console.error('Error fetching weekly assignments:', error);
@@ -383,6 +396,7 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
   };
 
   const getTopicalReading = (topic: string, dayIndex: number) => {
+    console.log('[getTopicalReading] topic:', topic, 'dayIndex:', dayIndex);
     const readings: { [key: string]: string[] } = {
       'The Trinity': [
         'Genesis 1:26-27 - Let Us Make Man',
@@ -503,7 +517,26 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
       ]
     };
     
-    return readings[topic]?.[dayIndex] || `${topic} study - Day ${dayIndex + 1}`;
+    // Try exact match first, then case-insensitive match
+    const exactMatch = readings[topic];
+    if (exactMatch && exactMatch[dayIndex]) {
+      console.log('[getTopicalReading] found exact match:', exactMatch[dayIndex]);
+      return exactMatch[dayIndex];
+    }
+    
+    // Try case-insensitive match
+    const matchingKey = Object.keys(readings).find(key => 
+      key.toLowerCase() === topic.toLowerCase()
+    );
+    
+    if (matchingKey && readings[matchingKey] && readings[matchingKey][dayIndex]) {
+      console.log('[getTopicalReading] found case-insensitive match:', readings[matchingKey][dayIndex]);
+      return readings[matchingKey][dayIndex];
+    }
+    
+    // Fallback
+    console.log('[getTopicalReading] no match found, using fallback');
+    return `${topic} study - Day ${dayIndex + 1}`;
   };
 
   const handleMarkCompleted = async () => {
