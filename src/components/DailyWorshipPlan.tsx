@@ -258,6 +258,7 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
             .maybeSingle();
 
           const weeklyDerived = await generateWeeklyPlan();
+          console.log('[fetchTodaysPlan] weeklyDerived bibleReading:', weeklyDerived.bibleReading);
           const linkId = weeklyPlan ? (weeklyPlan as any).id : null;
 
           await supabase
@@ -282,6 +283,7 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
             assistantName: (existingPlan as any).assistant?.name,
             familyMembersPresent: (existingPlan as any).family_members_present || []
           };
+          console.log('[fetchTodaysPlan] enrichedPlan bibleReading:', enrichedPlan.bibleReading);
           setCurrentPlan(enrichedPlan);
           setIsCompleted((existingPlan as any).is_completed || false);
           return;
@@ -397,6 +399,10 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
 
   const getTopicalReading = (topic: string, dayIndex: number) => {
     console.log('[getTopicalReading] topic:', topic, 'dayIndex:', dayIndex);
+    
+    // Normalize topic for case-insensitive matching
+    const normalizedTopic = topic?.trim();
+    
     const readings: { [key: string]: string[] } = {
       'The Trinity': [
         'Genesis 1:26-27 - Let Us Make Man',
@@ -505,6 +511,15 @@ export const DailyWorshipPlan = ({ onNavigate }: { onNavigate?: (feature: Active
         'Matthew 21:22 - Faith in Prayer',
         'Philippians 4:6-7 - Prayer and Peace',
         '1 John 5:14-15 - Confidence in Prayer'
+      ],
+      'The Gift of Prophecy': [
+        '1 Corinthians 12:1-11 - Spiritual Gifts',
+        'Ephesians 4:11-16 - Gifts for Church Building',
+        '2 Peter 1:19-21 - Prophecy of Scripture',
+        'Revelation 19:10 - Spirit of Prophecy',
+        '1 Corinthians 14:1-5 - Desire Prophetic Gifts',
+        'Numbers 12:6-8 - How God Speaks',
+        'Amos 3:7 - God Reveals His Secrets'
       ],
       'God\'s Love and Grace': [
         'John 3:16-21 - God\'s Love for the World',
